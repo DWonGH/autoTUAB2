@@ -12,7 +12,7 @@ preload=True
 window_len_s=60
 tuab_path = 'G:\\TUAB\\v2.0.0\\edf'
 tueg_path = 'G:\\TUEG'
-saved_data=False
+saved_data=False # N.B. If preload=False then data will be saved after pre-processing, even if saved_data=True
 saved_path='D:\\autotuab2\\saved_data'
 saved_windows_data=False
 saved_windows_path='D:\\autotuab2\\saved_windows_data'
@@ -56,7 +56,7 @@ init_lr = 1e-3 #This parameter is set differently in the old version and demo
 window_stride_samples=None #if None, window_stride_samples = window_len_samples
 #The next two parameters can be extended. For example, [dataset1,dataset2,...] [label1,label2,...]
 relabel_dataset=['D:/phd/tueg1g']
-relabel_label=['D:\\phd\\autotuab\\training_labels.csv']
+relabel_label=['D:\\phd\\autotuab\\tueg_labels.csv']
 
 channels=[
             'EEG A1-REF', 'EEG A2-REF',
