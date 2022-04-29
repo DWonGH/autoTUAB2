@@ -164,6 +164,7 @@ def custom_crop(raw, tmin=0.0, tmax=None, include_tmax=True):
     # by default mne fails if tmax is bigger than duration
     tmax = min((raw.n_times - 1) / raw.info['sfreq'], tmax)
     raw.crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
+
 if load_saved_windows:
     load_ids = list(range(n_load))
     windows_ds = load_concat_dataset(
@@ -225,10 +226,13 @@ else:
         if standardization:
             preprocessors.append(Preprocessor(exponential_moving_standardize,  # Exponential moving standardization
                          factor_new=factor_new, init_block_size=init_block_size))
-        preprocess(ds, preprocessors)
 
-        if saved_data:
-            ds.save(saved_path,overwrite=True)
+        if preload:
+            preprocess(ds, preprocessors, n_jobs=N_JOBS)
+            if saved_data:
+                ds.save(saved_path, overwrite=True)
+        else:
+            preprocess(ds, preprocessors, n_jobs=N_JOBS, save_dir=saved_path, overwrite=True)
 
     fs = ds.datasets[0].raw.info['sfreq']
     # print("fs:",fs)
