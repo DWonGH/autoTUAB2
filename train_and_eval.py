@@ -95,7 +95,7 @@ def relabel(dataset,label_path,dataset_folder):
     all_labelled_TUEG_file_names = []
     TUEG_labels = []
     with open(label_path, newline='') as csvfile:
-        label_catalog_reader = csv.reader(csvfile)
+        label_catalog_reader = csv.reader(csvfile, delimiter='\t')
 
         # Skip the header row (column names)
         next(label_catalog_reader, None)
