@@ -1,5 +1,9 @@
+# This file sets various parameters used in train_and_eval.py.
 
-mne_log_level = 'WARNING'  # avoid messages everytime a window is extracted
+# Set verbosity of outputs from MNE library.
+# Options: DEBUG, INFO, WARNING, ERROR, or CRITICAL.
+# WARNING or higher avoids messages printing every time a window is extracted.
+mne_log_level = 'WARNING'
 
 # parameters
 random_state = 87
