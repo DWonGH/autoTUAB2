@@ -231,7 +231,7 @@ else:
                          factor_new=factor_new, init_block_size=init_block_size))
 
         if preload:
-            preprocess(ds, preprocessors, n_jobs=N_JOBS)
+            preprocess(ds, preprocessors)
             if saved_data:
                 ds.save(saved_path, overwrite=True)
         else:
