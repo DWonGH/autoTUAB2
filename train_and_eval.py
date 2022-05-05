@@ -184,14 +184,17 @@ else:
     )
     else:
         tuab_ids = list(range(n_tuab))
-        tueg_ids=list(range(n_tueg))
         ds_tuab= TUHAbnormal(
             tuab_path, recording_ids=tuab_ids,target_name='pathological',
             preload=preload)
         print(ds_tuab.description)
-        ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
-            preload=preload)
-        print(ds_tueg.description)
+
+        if tueg:
+            tueg_ids=list(range(n_tueg))
+            ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
+                preload=preload)
+            print(ds_tueg.description)
+
         ds=BaseConcatDataset(([i for i in ds_tuab.datasets] if tuab else [])+([j for j in ds_tueg.datasets] if tueg else []))
         print(ds.description)
         ds=select_by_duration(ds,tmin,tmax)
