@@ -212,7 +212,7 @@ else:
             Preprocessor(fn='resample', sfreq=sampling_freq),
             Preprocessor(custom_crop, tmin=sec_to_cut, tmax=duration_recording_sec+sec_to_cut, include_tmax=False,
                          apply_on_array=False),
-            # Preprocessor('crop',tmin=60,tmax=21*60),
+            # Preprocessor('crop',tmin=sec_to_cut,tmax=duration_recording_sec+sec_to_cut),
             Preprocessor(scale, factor=1e6, apply_on_array=True),  # Convert from V to uV
             # Preprocessor('filter', l_freq=low_cut_hz, h_freq=high_cut_hz),  # Bandpass filter
             Preprocessor(np.clip, a_min=-max_abs_val, a_max=max_abs_val, apply_on_array=True),
@@ -299,8 +299,17 @@ elif (split_way=='folder') :#this funtion do not create test_set now
     # print(windows_ds.description)
     splits=windows_ds.split('train')
     # print(splits)
-    train_set=splits['True']
-    valid_set=splits['False']
+    train_valid_set=splits['True']
+    test_set=splits['False']
+    idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
+                                                 random_state=random_state,
+                                                 train_size=train_size,
+                                                 shuffle=shuffle)
+    splits = windows_ds.split(
+        {"train": idx_train, "valid": idx_valid}
+    )
+    valid_set = splits["valid"]
+    train_set = splits["train"]
 
 
 n_channels = windows_ds[0][0].shape[0]
@@ -343,7 +352,7 @@ elif model_name=='usleep':
 elif model_name=='tidnet':
     model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=0.4, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
 elif model_name=='tcn_1':
-    model=TCN_1(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=11, drop_prob=0.2, add_log_softmax=False)
+    model=TCN_1(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=11, drop_prob=0.2, add_log_softmax=False,input_window_samples=window_len_samples)
 elif model_name=='hybridnet':
     model=HybridNet(n_channels,n_classes,window_len_samples)
 elif model_name == 'hybridnet_1':

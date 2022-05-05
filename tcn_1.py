@@ -44,8 +44,9 @@ class TCN_1(nn.Module):
        arXiv preprint arXiv:1803.01271.
     """
     def __init__(self, n_in_chans, n_outputs, n_blocks, n_filters, kernel_size,
-                 drop_prob, add_log_softmax):
+                 drop_prob, add_log_softmax,input_window_samples):
         super().__init__()
+        self.time_size=input_window_samples
         self.n_outputs=n_outputs
         self.ensuredims = Ensure4d()
         t_blocks = nn.Sequential()
@@ -73,7 +74,16 @@ class TCN_1(nn.Module):
             self.min_len += 2 * (kernel_size - 1) * dilation
 
         # start in eval mode
+        out_size = 1 + max(0, self.time_size - self.min_len)
+        self.output_layer=nn.Conv1d(
+                self.n_outputs,
+                self.n_outputs,
+                out_size,
+                bias=True,
+            )
+        init.normal_(self.output_layer.weight, 0, 0.01)
         self.eval()
+
 
     def forward(self, x):
         """Forward pass.
@@ -100,13 +110,9 @@ class TCN_1(nn.Module):
 
         out_size = 1 + max(0, time_size - self.min_len)
         # print("out_size:",out_size)
+        # print("time_size",time_size)
         out = fc_out[:, -out_size:, :].transpose(1, 2)
-        out=nn.Conv1d(
-                self.n_outputs,
-                self.n_outputs,
-                out_size,
-                bias=True,
-            )(out)
+        out=self.output_layer(out)
 
 
         # re-add 4th dimension for compatibility with braindecode

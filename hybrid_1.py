@@ -4,7 +4,7 @@
 
 import torch
 from torch import nn
-from torch.nn import ConstantPad2d
+from torch.nn import ConstantPad2d,init
 
 from braindecode.models.deep4 import Deep4Net
 from braindecode.models.util import to_dense_prediction_model
@@ -83,9 +83,12 @@ class HybridNet_1(nn.Module):
         to_dense_prediction_model(reduced_shallow_model)
         self.reduced_deep_model = reduced_deep_model
         self.reduced_shallow_model = reduced_shallow_model
-        # self.final_conv = nn.Conv2d(
-        #     100, n_classes, kernel_size=(1, 1), stride=1
-        # )
+        self.output_size=input_window_samples-521
+        self.final_conv = nn.Conv2d(
+            100, n_classes, kernel_size=(self.output_size, 1), stride=1
+        )
+        init.normal_(self.final_conv.weight, 0, 0.01)
+
 
     def forward(self, x):
         """Forward pass.
@@ -95,9 +98,17 @@ class HybridNet_1(nn.Module):
         x: torch.Tensor
             Batch of EEG windows of shape (batch_size, n_channels, n_times).
         """
+        # x1=x.clone()
+        # for name, module in self.reduced_deep_model.named_children():
+        #     x1=module(x1)
+        #     print(x1.size())
+
         deep_out = self.reduced_deep_model(x)
         shallow_out = self.reduced_shallow_model(x)
+        # print("deep_out",deep_out.size()[2])
+        # print("shallow_out",shallow_out.size()[2])
         output_size=max(deep_out.size()[2], shallow_out.size()[2])
+        # print("output_size",output_size)
 
         n_diff_deep_shallow = deep_out.size()[2] - shallow_out.size()[2]
 
@@ -112,7 +123,7 @@ class HybridNet_1(nn.Module):
 
         merged_out = torch.cat((deep_out, shallow_out), dim=1)
         # linear_out = self.final_conv(merged_out)
-        linear_out=nn.Conv2d(100,self.n_classes , kernel_size=(output_size, 1), stride=1)(merged_out)
+        linear_out=self.final_conv(merged_out)
         softmaxed = nn.LogSoftmax(dim=1)(linear_out)
         squeezed = softmaxed.squeeze(3)
         squeezed = squeezed.squeeze(2)
