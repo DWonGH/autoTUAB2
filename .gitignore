@@ -1,6 +1,7 @@
 #### Project specific settings
 # Ignore user's config files
 train_and_eval_config.py
+batch_test_hyperparameters.py
 
 # Misc
 test.py
