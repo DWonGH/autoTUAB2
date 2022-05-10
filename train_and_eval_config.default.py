@@ -16,7 +16,7 @@ preload=True
 window_len_s=60
 tuab_path = 'G:\\TUAB\\v2.0.0\\edf'
 tueg_path = 'G:\\TUEG'
-saved_data=False # N.B. If preload=False then data will be saved after pre-processing, even if saved_data=True
+saved_data=False # N.B. If preload=False then data will be saved after pre-processing, even if saved_data=False
 saved_path='D:\\autotuab2\\saved_data'
 saved_windows_data=False
 saved_windows_path='D:\\autotuab2\\saved_windows_data'
