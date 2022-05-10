@@ -229,6 +229,7 @@ with open(log_path,'a') as f:
             valid_set = splits["valid"]
             train_set = splits["train"]
 
+        etl_time = time.time() - data_loading_start
 
         n_channels = windows_ds[0][0].shape[0]
 
@@ -310,7 +311,7 @@ with open(log_path,'a') as f:
         # in the dataset.
         clf.fit(train_set, y=None, epochs=n_epochs)
         # clf.save_params('./params.pt')
-        model_training_end = time.time()
+        model_training_time = time.time() - model_training_start
 
         import matplotlib.pyplot as plt
         from matplotlib.lines import Line2D
@@ -366,11 +367,13 @@ with open(log_path,'a') as f:
         print('precision:',precision)
         print('recall:',recall)
         print('acc:',acc)
-        print('time_consumption:',time_consumption)
+        print('etl_time:',etl_time)
+        print('model_training_time:',model_training_time)
         for i in range(n_epochs-1):
             writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
-        writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],time_consumption,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
-         tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
+        writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],etl_time,\
+         model_training_time,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
+         window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
          load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
          standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
          batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
