@@ -6,6 +6,7 @@ train_and_eval_config.py
 test.py
 test_eval.py
 params*.pt
+result.csv
 
 
 
