@@ -23,7 +23,6 @@ from braindecode.datautil import load_concat_dataset
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
 
-from train_and_eval_config import *
 from util import *
 from batch_test_hyperparameters import *
 
