@@ -363,14 +363,14 @@ with open(log_path,'a') as f:
         recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
         acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
         end=time.time()
-        time_comsumption=timecost(end-start)
+        time_consumption=timecost(end - start)
         print('precision:',precision)
         print('recall:',recall)
         print('acc:',acc)
-        print('time_comsumption:',time_comsumption)
+        print('time_consumption:',time_consumption)
         for i in range(n_epochs-1):
             writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
-        writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],time_comsumption,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
+        writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],time_consumption,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
          tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
          load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
          standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
