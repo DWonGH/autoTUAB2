@@ -29,6 +29,13 @@ from batch_test_hyperparameters import *
 log_path="result.csv"
 plot_result=False
 
+cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
+device = 'cuda' if cuda else 'cpu'
+if cuda:
+    torch.backends.cudnn.benchmark = True
+# torch.backends.cudnn.benchmark = True  # Enables automatic algorithm optimizations
+torch.set_num_threads(n_jobs)  # Sets the available number of threads
+
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
@@ -68,13 +75,6 @@ with open(log_path,'a') as f:
         channels)
         start=time.time()
         mne.set_log_level(mne_log_level)
-
-        cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
-        device = 'cuda' if cuda else 'cpu'
-        if cuda:
-            torch.backends.cudnn.benchmark = True
-        # torch.backends.cudnn.benchmark = True  # Enables automatic algorithm optimizations
-        torch.set_num_threads(n_jobs)  # Sets the available number of threads
 
         data_loading_start = time.time()
 
