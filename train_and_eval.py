@@ -29,13 +29,6 @@ from batch_test_hyperparameters import *
 log_path="result.csv"
 plot_result=False
 
-cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
-device = 'cuda' if cuda else 'cpu'
-if cuda:
-    torch.backends.cudnn.benchmark = True
-# torch.backends.cudnn.benchmark = True  # Enables automatic algorithm optimizations
-torch.set_num_threads(n_jobs)  # Sets the available number of threads
-
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
@@ -49,31 +42,36 @@ with open(log_path,'a') as f:
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
      'channels'])
 
-    for (i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
+    # Iterate over data/preproc parameters
+    for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
          tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
          load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
-         standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
-         batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
-         sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
-         model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-         channels) in product(
-                range(N_REPETITIONS),MNE_LOG_LEVEL,RANDOM_STATE,TUAB,TUEG,N_TUAB,N_TUEG,N_LOAD,PRELOAD,\
+         standardization,factor_new,init_block_size,n_jobs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
+         sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,window_stride_samples,\
+         relabel_dataset,relabel_label,channels) in product(
+                MNE_LOG_LEVEL,RANDOM_STATE,TUAB,TUEG,N_TUAB,N_TUEG,N_LOAD,PRELOAD,\
                 WINDOW_LEN_S,TUAB_PATH,TUEG_PATH,SAVED_DATA,SAVED_PATH,SAVED_WINDOWS_DATA,\
                 SAVED_WINDOWS_PATH,LOAD_SAVED_DATA,LOAD_SAVED_WINDOWS,BANDPASS_FILTER,\
                 LOW_CUT_HZ,HIGH_CUT_HZ,STANDARDIZATION,FACTOR_NEW,INIT_BLOCK_SIZE,N_JOBS,\
-                N_CLASSES,LR,WEIGHT_DECAY,BATCH_SIZE,N_EPOCHS,TMIN,TMAX,MULTIPLE,SEC_TO_CUT,\
+                TMIN,TMAX,MULTIPLE,SEC_TO_CUT,\
                 DURATION_RECORDING_SEC,MAX_ABS_VAL,SAMPLING_FREQ,TEST_ON_VAL,SPLIT_WAY,\
-                TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,MODEL_NAME,FINAL_CONV_LENGTH,\
-                WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS):
-        print(i, mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
+                TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS):
+        print(mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
         tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
         load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
-        standardization, factor_new, init_block_size, n_jobs, n_classes, lr, weight_decay, \
-        batch_size, n_epochs, tmin, tmax, multiple, sec_to_cut, duration_recording_sec, max_abs_val, \
+        standardization, factor_new, init_block_size, n_jobs, \
+        tmin, tmax, multiple, sec_to_cut, duration_recording_sec, max_abs_val, \
         sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
-        model_name, final_conv_length, window_stride_samples, relabel_dataset, relabel_label, \
+        relabel_dataset, relabel_label, \
         channels)
-        start=time.time()
+
+        cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
+        device = 'cuda' if cuda else 'cpu'
+        if cuda:
+            torch.backends.cudnn.benchmark = True
+        # torch.backends.cudnn.benchmark = True  # Enables automatic algorithm optimizations
+        torch.set_num_threads(n_jobs)  # Sets the available number of threads
+
         mne.set_log_level(mne_log_level)
 
         data_loading_start = time.time()
@@ -235,163 +233,179 @@ with open(log_path,'a') as f:
 
         print("n_channels:",n_channels)
         # n_times = windows_ds[0][0].shape[1]
-        if model_name=='deep4':
-            model = Deep4Net(
-                        n_channels, n_classes, input_window_samples=window_len_samples,
-                        final_conv_length=final_conv_length, n_filters_time=25, n_filters_spat=25,
-                        filter_time_length=10, pool_time_length=3, pool_time_stride=3,
-                        n_filters_2=50, filter_length_2=10, n_filters_3=100,
-                        filter_length_3=10, n_filters_4=200, filter_length_4=10,
-                        first_pool_mode="max", later_pool_mode="max", drop_prob=0.5,
-                        double_time_convs=False, split_first_layer=True, batch_norm=True,
-                        batch_norm_alpha=0.1, stride_before_pool=False)
-        elif model_name=='shallow_smac':
-            model = ShallowFBCSPNet(
-                n_channels, n_classes, input_window_samples=window_len_samples,
-                n_filters_time=40, filter_time_length=25, n_filters_spat=40,
-                pool_time_length=75, pool_time_stride=15, final_conv_length=final_conv_length,
-                split_first_layer=True, batch_norm=True, batch_norm_alpha=0.1,
-                drop_prob=0.5)
-        elif model_name=='eegnetv4':
-            model=EEGNetv4(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length,
-                                        pool_mode='mean', F1=8, D=2, F2=16, kernel_length=64, third_kernel_size=(8, 4),
-                                        drop_prob=0.25)
-        elif model_name=='eegnetv1':
-            model=EEGNetv1(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length, pool_mode='max', second_kernel_size=(2, 32), third_kernel_size=(8, 4), drop_prob=0.25)
-        elif model_name=='eegresnet':
-            model=EEGResNet(n_channels, n_classes, window_len_samples, final_conv_length, n_first_filters=10, n_layers_per_block=2, first_filter_length=3, split_first_layer=True, batch_norm_alpha=0.1, batch_norm_epsilon=0.0001)
-        elif model_name=='tcn':
-            model=TCN(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=12, drop_prob=0.2, add_log_softmax=False)
-        elif model_name=='sleep2020':
-            model=SleepStagerBlanco2020(n_channels, sampling_freq, n_conv_chans=20, input_size_s=60, n_classes=2, n_groups=3, max_pool_size=2, dropout=0.5, apply_batch_norm=False, return_feats=False)
-        elif model_name=='sleep2018':
-            model=SleepStagerChambon2018(n_channels, sampling_freq, n_conv_chs=8, time_conv_size_s=0.5, max_pool_size_s=0.125, pad_size_s=0.25, input_size_s=60, n_classes=2, dropout=0.25, apply_batch_norm=False, return_feats=False)
-        elif model_name=='usleep':
-            model=USleep(in_chans=n_channels, sfreq=sampling_freq, depth=12, n_time_filters=5, complexity_factor=1.67, with_skip_connection=True, n_classes=2, input_size_s=60, time_conv_size_s=0.0703125, ensure_odd_conv_size=False, apply_softmax=False)
-        elif model_name=='tidnet':
-            model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=0.4, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
-        elif model_name=='tcn_1':
-            model=TCN_1(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=11, drop_prob=0.2, add_log_softmax=False,input_window_samples=window_len_samples)
-        elif model_name=='hybridnet':
-            model=HybridNet(n_channels,n_classes,window_len_samples)
-        elif model_name == 'hybridnet_1':
-            model = HybridNet_1(n_channels, n_classes, window_len_samples)
-
-        print(get_output_shape(model,n_channels,window_len_samples))
-        print(model)
 
 
-        if cuda:
-            model.cuda()
-        training_setup_end = time.time()
+        # Iterate over model/training hyperparameters
+        for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length) \
+          in product(range(N_REPETITIONS), N_CLASSES, LR, WEIGHT_DECAY, BATCH_SIZE, N_EPOCHS, MODEL_NAME, \
+          FINAL_CONV_LENGTH, RELABEL_DATASET, RELABEL_LABEL, CHANNELS):
+            print(i, mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
+                  tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
+                  load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
+                  standardization, factor_new, init_block_size, n_jobs, n_classes, lr, weight_decay, \
+                  batch_size, n_epochs, tmin, tmax, multiple, sec_to_cut, duration_recording_sec, max_abs_val, \
+                  sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
+                  model_name, final_conv_length, window_stride_samples, relabel_dataset, relabel_label, \
+                  channels)
 
-        # Start training loop
-        model_training_start = time.time()
+            mne.set_log_level(mne_log_level)
 
-        from skorch.callbacks import LRScheduler
-        from skorch.helper import predefined_split
-        from braindecode import EEGClassifier
-        from skorch.callbacks import Checkpoint
+            if model_name=='deep4':
+                model = Deep4Net(
+                            n_channels, n_classes, input_window_samples=window_len_samples,
+                            final_conv_length=final_conv_length, n_filters_time=25, n_filters_spat=25,
+                            filter_time_length=10, pool_time_length=3, pool_time_stride=3,
+                            n_filters_2=50, filter_length_2=10, n_filters_3=100,
+                            filter_length_3=10, n_filters_4=200, filter_length_4=10,
+                            first_pool_mode="max", later_pool_mode="max", drop_prob=0.5,
+                            double_time_convs=False, split_first_layer=True, batch_norm=True,
+                            batch_norm_alpha=0.1, stride_before_pool=False)
+            elif model_name=='shallow_smac':
+                model = ShallowFBCSPNet(
+                    n_channels, n_classes, input_window_samples=window_len_samples,
+                    n_filters_time=40, filter_time_length=25, n_filters_spat=40,
+                    pool_time_length=75, pool_time_stride=15, final_conv_length=final_conv_length,
+                    split_first_layer=True, batch_norm=True, batch_norm_alpha=0.1,
+                    drop_prob=0.5)
+            elif model_name=='eegnetv4':
+                model=EEGNetv4(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length,
+                                            pool_mode='mean', F1=8, D=2, F2=16, kernel_length=64, third_kernel_size=(8, 4),
+                                            drop_prob=0.25)
+            elif model_name=='eegnetv1':
+                model=EEGNetv1(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length, pool_mode='max', second_kernel_size=(2, 32), third_kernel_size=(8, 4), drop_prob=0.25)
+            elif model_name=='eegresnet':
+                model=EEGResNet(n_channels, n_classes, window_len_samples, final_conv_length, n_first_filters=10, n_layers_per_block=2, first_filter_length=3, split_first_layer=True, batch_norm_alpha=0.1, batch_norm_epsilon=0.0001)
+            elif model_name=='tcn':
+                model=TCN(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=12, drop_prob=0.2, add_log_softmax=False)
+            elif model_name=='sleep2020':
+                model=SleepStagerBlanco2020(n_channels, sampling_freq, n_conv_chans=20, input_size_s=60, n_classes=2, n_groups=3, max_pool_size=2, dropout=0.5, apply_batch_norm=False, return_feats=False)
+            elif model_name=='sleep2018':
+                model=SleepStagerChambon2018(n_channels, sampling_freq, n_conv_chs=8, time_conv_size_s=0.5, max_pool_size_s=0.125, pad_size_s=0.25, input_size_s=60, n_classes=2, dropout=0.25, apply_batch_norm=False, return_feats=False)
+            elif model_name=='usleep':
+                model=USleep(in_chans=n_channels, sfreq=sampling_freq, depth=12, n_time_filters=5, complexity_factor=1.67, with_skip_connection=True, n_classes=2, input_size_s=60, time_conv_size_s=0.0703125, ensure_odd_conv_size=False, apply_softmax=False)
+            elif model_name=='tidnet':
+                model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=0.4, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
+            elif model_name=='tcn_1':
+                model=TCN_1(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=11, drop_prob=0.2, add_log_softmax=False,input_window_samples=window_len_samples)
+            elif model_name=='hybridnet':
+                model=HybridNet(n_channels,n_classes,window_len_samples)
+            elif model_name == 'hybridnet_1':
+                model = HybridNet_1(n_channels, n_classes, window_len_samples)
 
-        cp = Checkpoint(dirname='', f_criterion=None, f_optimizer=None, f_history=None)
-        clf = EEGClassifier(
-            model,
-            criterion=torch.nn.NLLLoss,
-            optimizer=torch.optim.AdamW,
-            train_split=predefined_split(valid_set) if test_on_eval else None,  # using valid_set for validation
-            optimizer__lr=lr,
-            optimizer__weight_decay=weight_decay,
-            batch_size=batch_size,
-            callbacks=[
-                "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)
-            ],
-            device=device,
-        )
-        # Model training for a specified number of epochs. `y` is None as it is already supplied
-        # in the dataset.
-        clf.fit(train_set, y=None, epochs=n_epochs)
-        # clf.save_params('./params.pt')
-        model_training_time = time.time() - model_training_start
+            print(get_output_shape(model,n_channels,window_len_samples))
+            print(model)
 
-        import matplotlib.pyplot as plt
-        from matplotlib.lines import Line2D
 
-        # Extract loss and accuracy values for plotting from history object
-        results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
-        df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
-                          index=clf.history[:, 'epoch'])
-        # get percent of misclass for better visual comparison to loss
-        df = df.assign(train_misclass=100 - 100 * df.train_accuracy,
-                       valid_misclass=100 - 100 * df.valid_accuracy)
-        print(df)
-        if plot_result:
-            plt.style.use('seaborn')
-            fig, ax1 = plt.subplots(figsize=(8, 3))
-            df.loc[:, ['train_loss', 'valid_loss']].plot(
-                ax=ax1, style=['-', ':'], marker='o', color='tab:blue', legend=False, fontsize=14)
+            if cuda:
+                model.cuda()
+            training_setup_end = time.time()
 
-            ax1.tick_params(axis='y', labelcolor='tab:blue', labelsize=14)
-            ax1.set_ylabel("Loss", color='tab:blue', fontsize=14)
+            # Start training loop
+            model_training_start = time.time()
 
-            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+            from skorch.callbacks import LRScheduler
+            from skorch.helper import predefined_split
+            from braindecode import EEGClassifier
+            from skorch.callbacks import Checkpoint
 
-            df.loc[:, ['train_misclass', 'valid_misclass']].plot(
-                ax=ax2, style=['-', ':'], marker='o', color='tab:red', legend=False)
-            ax2.tick_params(axis='y', labelcolor='tab:red', labelsize=14)
-            ax2.set_ylabel("Misclassification Rate [%]", color='tab:red', fontsize=14)
-            ax2.set_ylim(ax2.get_ylim()[0], 85)  # make some room for legend
-            ax1.set_xlabel("Epoch", fontsize=14)
+            cp = Checkpoint(dirname='', f_criterion=None, f_optimizer=None, f_history=None)
+            clf = EEGClassifier(
+                model,
+                criterion=torch.nn.NLLLoss,
+                optimizer=torch.optim.AdamW,
+                train_split=predefined_split(valid_set) if test_on_eval else None,  # using valid_set for validation
+                optimizer__lr=lr,
+                optimizer__weight_decay=weight_decay,
+                batch_size=batch_size,
+                callbacks=[
+                    "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)
+                ],
+                device=device,
+            )
+            # Model training for a specified number of epochs. `y` is None as it is already supplied
+            # in the dataset.
+            clf.fit(train_set, y=None, epochs=n_epochs)
+            # clf.save_params('./params.pt')
+            model_training_time = time.time() - model_training_start
 
-            # where some data has already been plotted to ax
-            handles = []
-            handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle='-', label='Train'))
-            handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle=':', label='Valid'))
-            plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
-            plt.tight_layout()
-            plt.show()
-        from sklearn.metrics import confusion_matrix
-        from braindecode.visualization import plot_confusion_matrix
+            import matplotlib.pyplot as plt
+            from matplotlib.lines import Line2D
 
-        # generate confusion matrices
-        y_true = test_set.get_metadata().target
-        y_pred = clf.predict(test_set)
+            # Extract loss and accuracy values for plotting from history object
+            results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
+            df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
+                              index=clf.history[:, 'epoch'])
+            # get percent of misclass for better visual comparison to loss
+            df = df.assign(train_misclass=100 - 100 * df.train_accuracy,
+                           valid_misclass=100 - 100 * df.valid_accuracy)
+            print(df)
+            if plot_result:
+                plt.style.use('seaborn')
+                fig, ax1 = plt.subplots(figsize=(8, 3))
+                df.loc[:, ['train_loss', 'valid_loss']].plot(
+                    ax=ax1, style=['-', ':'], marker='o', color='tab:blue', legend=False, fontsize=14)
 
-        # generating confusion matrix
-        confusion_mat = confusion_matrix(y_true, y_pred)
-        # print(confusion_mat)
-        precision=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
-        recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
-        acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
-        end=time.time()
-        time_consumption=timecost(end - start)
-        print('precision:',precision)
-        print('recall:',recall)
-        print('acc:',acc)
-        print('etl_time:',etl_time)
-        print('model_training_time:',model_training_time)
-        for i in range(n_epochs-1):
-            writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
-        writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],etl_time,\
-         model_training_time,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
-         window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
-         load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
-         standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
-         batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
-         sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
-         model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-         channels])
-        # print(type(confusion_mat[0][0]))
-        # # add class labels
-        # # label_dict is class_name : str -> i_class : int
-        # label_dict = test_set.datasets[0].windows.event_id.items()
-        # print(label_dict)
-        # # # sort the labels by values (values are integer class labels)
-        # labels = list(dict(sorted(list(label_dict), key=lambda kv: kv[1])).keys())
-        # print(labels)
-        if plot_result:
-            labels=['normal','abnormal']
-            # plot the basic conf. matrix
-            plot_confusion_matrix(confusion_mat, class_names=labels) #if there is something wrong, change the version of matplotlib to 3.0.3, or find the result in confusion_mat
-            # plot_confusion_matrix(confusion_mat)
-            plt.show()
+                ax1.tick_params(axis='y', labelcolor='tab:blue', labelsize=14)
+                ax1.set_ylabel("Loss", color='tab:blue', fontsize=14)
+
+                ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+                df.loc[:, ['train_misclass', 'valid_misclass']].plot(
+                    ax=ax2, style=['-', ':'], marker='o', color='tab:red', legend=False)
+                ax2.tick_params(axis='y', labelcolor='tab:red', labelsize=14)
+                ax2.set_ylabel("Misclassification Rate [%]", color='tab:red', fontsize=14)
+                ax2.set_ylim(ax2.get_ylim()[0], 85)  # make some room for legend
+                ax1.set_xlabel("Epoch", fontsize=14)
+
+                # where some data has already been plotted to ax
+                handles = []
+                handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle='-', label='Train'))
+                handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle=':', label='Valid'))
+                plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
+                plt.tight_layout()
+                plt.show()
+            from sklearn.metrics import confusion_matrix
+            from braindecode.visualization import plot_confusion_matrix
+
+            # generate confusion matrices
+            y_true = test_set.get_metadata().target
+            y_pred = clf.predict(test_set)
+
+            # generating confusion matrix
+            confusion_mat = confusion_matrix(y_true, y_pred)
+            # print(confusion_mat)
+            precision=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
+            recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
+            acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
+            end=time.time()
+            print('precision:',precision)
+            print('recall:',recall)
+            print('acc:',acc)
+            print('etl_time:',etl_time)
+            print('model_training_time:',model_training_time)
+            for i in range(n_epochs-1):
+                writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
+            writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],etl_time,\
+             model_training_time,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
+             window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
+             load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
+             standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
+             batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
+             sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
+             model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
+             channels])
+            # print(type(confusion_mat[0][0]))
+            # # add class labels
+            # # label_dict is class_name : str -> i_class : int
+            # label_dict = test_set.datasets[0].windows.event_id.items()
+            # print(label_dict)
+            # # # sort the labels by values (values are integer class labels)
+            # labels = list(dict(sorted(list(label_dict), key=lambda kv: kv[1])).keys())
+            # print(labels)
+            if plot_result:
+                labels=['normal','abnormal']
+                # plot the basic conf. matrix
+                plot_confusion_matrix(confusion_mat, class_names=labels) #if there is something wrong, change the version of matplotlib to 3.0.3, or find the result in confusion_mat
+                # plot_confusion_matrix(confusion_mat)
+                plt.show()
 
