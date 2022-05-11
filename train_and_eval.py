@@ -32,7 +32,8 @@ plot_result=False
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
-    writer.writerow(['train_loss', 'valid_loss',  'train_accuracy',  'valid_accuracy','time_consumption','test_acc','test_precision','test_recall',\
+    writer.writerow(['train_loss', 'valid_loss',  'train_accuracy',  'valid_accuracy','etl_time','model_training_time',\
+     'test_acc','test_precision','test_recall',\
      'n_repetition','mne_log_level','random_state','tuab','tueg','n_tuab','n_tueg','n_load','preload','window_len_s',\
      'tuab_path','tueg_path','saved_data','saved_path','saved_windows_data','saved_windows_path',\
      'load_saved_data','load_saved_windows','bandpass_filter','low_cut_hz','high_cut_hz',\
@@ -238,7 +239,7 @@ with open(log_path,'a') as f:
         # Iterate over model/training hyperparameters
         for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length) \
           in product(range(N_REPETITIONS), N_CLASSES, LR, WEIGHT_DECAY, BATCH_SIZE, N_EPOCHS, MODEL_NAME, \
-          FINAL_CONV_LENGTH, RELABEL_DATASET, RELABEL_LABEL, CHANNELS):
+          FINAL_CONV_LENGTH):
             print(i, mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
                   tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
                   load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
