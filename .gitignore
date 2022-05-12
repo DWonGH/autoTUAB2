@@ -8,6 +8,8 @@ test.py
 test_eval.py
 params*.pt
 result.csv
+history.json
+
 
 
 

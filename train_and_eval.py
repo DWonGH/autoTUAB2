@@ -307,9 +307,11 @@ with open(log_path,'a') as f:
             from skorch.callbacks import LRScheduler
             from skorch.helper import predefined_split
             from braindecode import EEGClassifier
-            from skorch.callbacks import Checkpoint
+            from skorch.callbacks import Checkpoint,EarlyStopping
 
-            cp = Checkpoint(dirname='', f_criterion=None, f_optimizer=None, f_history=None)
+            monitor = lambda net: all(net.history[-1, ('train_loss_best', 'valid_loss_best')])
+            cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=True)
+            es=EarlyStopping()
             clf = EEGClassifier(
                 model,
                 criterion=torch.nn.NLLLoss,
@@ -319,7 +321,7 @@ with open(log_path,'a') as f:
                 optimizer__weight_decay=weight_decay,
                 batch_size=batch_size,
                 callbacks=[
-                    "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)
+                    "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp),("es",es)
                 ],
                 device=device,
             )
