@@ -27,7 +27,7 @@ from util import *
 from batch_test_hyperparameters import *
 
 log_path="result.csv"
-plot_result=False
+plot_result=True
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -287,7 +287,7 @@ with open(log_path,'a') as f:
             elif model_name=='tidnet':
                 model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=0.4, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
             elif model_name=='tcn_1':
-                model=TCN_1(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=11, drop_prob=0.2, add_log_softmax=False,input_window_samples=window_len_samples)
+                model=TCN_1(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=11, drop_prob=0.2, add_log_softmax=True,input_window_samples=window_len_samples)
             elif model_name=='hybridnet':
                 model=HybridNet(n_channels,n_classes,window_len_samples)
             elif model_name == 'hybridnet_1':
@@ -310,8 +310,8 @@ with open(log_path,'a') as f:
             from skorch.callbacks import Checkpoint,EarlyStopping
 
             monitor = lambda net: all(net.history[-1, ('train_loss_best', 'valid_loss_best')])
-            cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=True)
-            es=EarlyStopping()
+            cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
+            # es=EarlyStopping()
             clf = EEGClassifier(
                 model,
                 criterion=torch.nn.NLLLoss,
@@ -321,7 +321,8 @@ with open(log_path,'a') as f:
                 optimizer__weight_decay=weight_decay,
                 batch_size=batch_size,
                 callbacks=[
-                    "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp),("es",es)
+                    "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp),\
+                    # ("es",es)
                 ],
                 device=device,
             )
@@ -386,9 +387,10 @@ with open(log_path,'a') as f:
             print('acc:',acc)
             print('etl_time:',etl_time)
             print('model_training_time:',model_training_time)
-            for i in range(n_epochs-1):
+            his_len=len(df)
+            for i in range(his_len-1):
                 writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
-            writer.writerow([df.loc[n_epochs][0],df.loc[n_epochs][1],df.loc[n_epochs][2],df.loc[n_epochs][3],etl_time,\
+            writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
              model_training_time,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
              window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
              load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\

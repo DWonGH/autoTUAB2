@@ -104,8 +104,7 @@ class TCN_1(nn.Module):
         x = x.transpose(1, 2).contiguous()
 
         fc_out = self.fc(x.view(batch_size * time_size, x.size(2)))
-        if hasattr(self, "log_softmax"):
-            fc_out = self.log_softmax(fc_out)
+
         fc_out = fc_out.view(batch_size, time_size, fc_out.size(1))
 
         out_size = 1 + max(0, time_size - self.min_len)
@@ -113,6 +112,8 @@ class TCN_1(nn.Module):
         # print("time_size",time_size)
         out = fc_out[:, -out_size:, :].transpose(1, 2)
         out=self.output_layer(out)
+        if hasattr(self, "log_softmax"):
+            out = self.log_softmax(out)
 
 
         # re-add 4th dimension for compatibility with braindecode
