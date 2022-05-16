@@ -44,12 +44,13 @@ class TCN_1(nn.Module):
        arXiv preprint arXiv:1803.01271.
     """
     def __init__(self, n_in_chans, n_outputs, n_blocks, n_filters, kernel_size,
-                 drop_prob, add_log_softmax,input_window_samples):
+                 drop_prob, add_log_softmax,input_window_samples,last_layer_type='conv'):
         super().__init__()
         self.time_size=input_window_samples
         self.n_outputs=n_outputs
         self.ensuredims = Ensure4d()
         t_blocks = nn.Sequential()
+        self.last_layer_type=last_layer_type
         for i in range(n_blocks):
             n_inputs = n_in_chans if i == 0 else n_filters
             dilation_size = 2 ** i
@@ -75,13 +76,21 @@ class TCN_1(nn.Module):
 
         # start in eval mode
         out_size = 1 + max(0, self.time_size - self.min_len)
-        self.output_layer=nn.Conv1d(
-                self.n_outputs,
-                self.n_outputs,
-                out_size,
-                bias=True,
-            )
-        init.normal_(self.output_layer.weight, 0, 0.01)
+        if last_layer_type=='conv':
+            self.output_layer=nn.Conv1d(
+                    self.n_outputs,
+                    self.n_outputs,
+                    out_size,
+                    bias=True,
+                )
+        elif last_layer_type=='linear':
+            self.output_layer=nn.Linear(self.n_outputs*out_size,self.n_outputs)
+        elif last_layer_type=='ave_pool':
+            self.output_layer=nn.AvgPool1d(out_size)
+        elif last_layer_type=='max_pool':
+            self.output_layer=nn.MaxPool1d(out_size)
+        if last_layer_type!='ave_pool' and last_layer_type!='max_pool':
+            init.normal_(self.output_layer.weight, 0, 0.01)
         self.eval()
 
 
@@ -111,7 +120,12 @@ class TCN_1(nn.Module):
         # print("out_size:",out_size)
         # print("time_size",time_size)
         out = fc_out[:, -out_size:, :].transpose(1, 2)
+        if self.last_layer_type=='linear':
+            out=out.reshape(batch_size,-1)
         out=self.output_layer(out)
+        # print(out.shape)
+        if self.last_layer_type=='linear':
+            out=out.unsqueeze(-1)
         if hasattr(self, "log_softmax"):
             out = self.log_softmax(out)
 
