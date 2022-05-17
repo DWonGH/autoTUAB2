@@ -25,12 +25,14 @@ from braindecode.util import np_to_th
 from braindecode.datautil import load_concat_dataset
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
+from vit import ViT
 
 from util import *
 from batch_test_hyperparameters import *
 
 log_path="result.csv"
 plot_result=False
+BO=False
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -253,7 +255,7 @@ with open(log_path,'a') as f:
                   channels)
 
             mne.set_log_level(mne_log_level)
-            def exp(drop_prob,n_blocks, n_filters, kernel_size):
+            def exp(drop_prob=0.2,n_blocks=8, n_filters=2, kernel_size=11):
                 n_blocks=int(n_blocks)
                 n_filters=int(n_filters)
                 kernel_size=int(kernel_size)
@@ -299,6 +301,8 @@ with open(log_path,'a') as f:
                     model=HybridNet(n_channels,n_classes,window_len_samples)
                 elif model_name == 'hybridnet_1':
                     model = HybridNet_1(n_channels, n_classes, window_len_samples)
+                elif model_name == 'vit':
+                    model = ViT(num_channels=n_channels,input_window_samples = window_len_samples,patch_size = 100,num_classes = n_classes,dim = 128,depth = 6,heads = 16,mlp_dim = 128,dropout = 0.1,emb_dropout = 0.1)
 
                 print(get_output_shape(model,n_channels,window_len_samples))
                 print(model)
@@ -422,17 +426,19 @@ with open(log_path,'a') as f:
                     plt.show()
                 return acc
 
-
-            bounds_transformer = SequentialDomainReductionTransformer()
-            pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
-            mutating_optimizer = BayesianOptimization(
-                f=exp,
-                pbounds=pbounds,
-                verbose=0,
-                random_state=1,
-                bounds_transformer=bounds_transformer
-            )
-            mutating_optimizer.maximize(
-                init_points=0,
-                n_iter=1,
-            )
+            if BO:
+                bounds_transformer = SequentialDomainReductionTransformer()
+                pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
+                mutating_optimizer = BayesianOptimization(
+                    f=exp,
+                    pbounds=pbounds,
+                    verbose=0,
+                    random_state=1,
+                    bounds_transformer=bounds_transformer
+                )
+                mutating_optimizer.maximize(
+                    init_points=0,
+                    n_iter=1,
+                )
+            else:
+                exp()
