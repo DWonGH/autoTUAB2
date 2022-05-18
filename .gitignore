@@ -9,6 +9,7 @@ test_eval.py
 params*.pt
 result.csv
 history.json
+metadata.csv
 
 
 

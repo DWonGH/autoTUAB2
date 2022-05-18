@@ -9,7 +9,58 @@ import pandas as pd
 import seaborn as sns
 import glob
 import re
+import pandas as pd
 
+def find_all_zero(input):
+    res=[]
+    for i in range(len(input)):
+        if input[i]==0:
+            res.append(i)
+    return res
+
+
+def top1(lst):
+    return max(lst, default='empty', key=lambda v: lst.count(v))
+def con_mat(starts,b,c):
+    b = b.tolist()
+    TT = 0
+    TF = 0
+    FT = 0
+    FF = 0
+
+    begin = starts[0]
+    if len(starts)>1:
+        for end in starts[1:]:
+            predict=c[begin:end].tolist()
+            predict=top1(predict)
+            if predict==True:
+                if b[begin]==True:
+                    TT+=1
+                else:
+                    TF+=1
+            else:
+                if b[begin] == True:
+                    FT+=1
+                else:
+                    FF+=1
+
+            # print(predict)
+            begin=end
+    predict=c[begin:].tolist()
+    predict=top1(predict)
+    if predict == True:
+        if b[begin] == True:
+            TT += 1
+        else:
+            TF += 1
+    else:
+        if b[begin] == True:
+            FT += 1
+        else:
+            FF += 1
+    # print(predict)
+    # print(TT,TF,FT,FF)
+    return np.array([[FF,TF],[FT,TT]])
 def timecost(time_dutation):
     m, s = divmod(time_dutation, 60)
     h, m = divmod(m, 60)

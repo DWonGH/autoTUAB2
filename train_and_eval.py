@@ -30,9 +30,6 @@ from vit import ViT
 from util import *
 from batch_test_hyperparameters import *
 
-log_path="result.csv"
-plot_result=False
-BO=False
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -46,7 +43,7 @@ with open(log_path,'a') as f:
      'batch_size','n_epochs','tmin','tmax','multiple','sec_to_cut','duration_recording_sec','max_abs_val',\
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
-     'channels','drop_prob','n_blocks','n_filters', 'kernel_size'])
+     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording','acc_per_recording'])
 
     # Iterate over data/preproc parameters
     for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
@@ -198,6 +195,9 @@ with open(log_path,'a') as f:
             valid_set = splits["valid"]
             train_set = splits["train"]
             test_set = splits["test"]
+            i_win=pd.DataFrame(test_set.get_metadata())['i_window_in_trial']
+            print(i_win)
+
 
 
             # valid_set = torch.utils.data.Subset(windows_ds, idx_valid)
@@ -348,6 +348,7 @@ with open(log_path,'a') as f:
 
                 # Extract loss and accuracy values for plotting from history object
                 results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
+                # print(clf.history)
                 df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
                                   index=clf.history[:, 'epoch'])
                 # get percent of misclass for better visual comparison to loss
@@ -383,19 +384,39 @@ with open(log_path,'a') as f:
                 from braindecode.visualization import plot_confusion_matrix
 
                 # generate confusion matrices
+                # print(test_set.description)
                 y_true = test_set.get_metadata().target
+                # print(y_true)
+                starts=find_all_zero(test_set.get_metadata()['i_window_in_trial'].tolist())
+                # print(starts)
+                # print('y_true:',y_true)
+                # print(len(y_true))
                 y_pred = clf.predict(test_set)
+                # print(y_pred)
+                # print('y_pred:',y_pred)
+                # print(len(y_pred))
+                confusion_mat_per_recording=con_mat(starts,y_true,y_pred)
+                print(confusion_mat_per_recording)
+                # print(type(confusion_mat_per_recording))
+
 
                 # generating confusion matrix
                 confusion_mat = confusion_matrix(y_true, y_pred)
-                # print(confusion_mat)
+                print(confusion_mat)
+                # print(type(confusion_mat))
                 precision=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
                 recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
                 acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
+                precision_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,0])
+                recall_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1])
+                acc_per_recording=(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,1])/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1]+confusion_mat_per_recording[1,1]+confusion_mat_per_recording[1,0])
                 end=time.time()
                 print('precision:',precision)
                 print('recall:',recall)
                 print('acc:',acc)
+                print('precision_per_recording:', precision_per_recording)
+                print('recall_per_recording:', recall_per_recording)
+                print('acc_per_recording:', acc_per_recording)
                 print('etl_time:',etl_time)
                 print('model_training_time:',model_training_time)
                 his_len=len(df)
@@ -409,7 +430,7 @@ with open(log_path,'a') as f:
                  batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
                  sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
                  model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-                 channels,drop_prob,n_blocks, n_filters, kernel_size])
+                 channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording])
                 # print(type(confusion_mat[0][0]))
                 # # add class labels
                 # # label_dict is class_name : str -> i_class : int
@@ -424,6 +445,9 @@ with open(log_path,'a') as f:
                     plot_confusion_matrix(confusion_mat, class_names=labels) #if there is something wrong, change the version of matplotlib to 3.0.3, or find the result in confusion_mat
                     # plot_confusion_matrix(confusion_mat)
                     plt.show()
+                    plot_confusion_matrix(confusion_mat_per_recording, class_names=labels)
+                    plt.show()
+
                 return acc
 
             if BO:
