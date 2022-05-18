@@ -195,8 +195,6 @@ with open(log_path,'a') as f:
             valid_set = splits["valid"]
             train_set = splits["train"]
             test_set = splits["test"]
-            i_win=pd.DataFrame(test_set.get_metadata())['i_window_in_trial']
-            print(i_win)
 
 
 
