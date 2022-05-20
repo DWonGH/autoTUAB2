@@ -30,6 +30,7 @@ from vit import ViT
 from util import *
 from batch_test_hyperparameters import *
 
+pd.set_option('display.max_columns', 10)
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -320,7 +321,7 @@ with open(log_path,'a') as f:
 
                 monitor = lambda net: all(net.history[-1, ('train_loss_best', 'valid_loss_best')])
                 cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
-                # es=EarlyStopping()
+                es = EarlyStopping(threshold=0.001, threshold_mode='rel', patience=5)
                 clf = EEGClassifier(
                     model,
                     criterion=torch.nn.NLLLoss,
@@ -331,10 +332,14 @@ with open(log_path,'a') as f:
                     batch_size=batch_size,
                     callbacks=[
                         "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp),\
-                        # ("es",es)
+                        ("es",es)
                     ],
                     device=device,
                 )
+
+                # Prevent GPU memory fragmentation
+                torch.cuda.empty_cache()
+
                 # Model training for a specified number of epochs. `y` is None as it is already supplied
                 # in the dataset.
                 clf.fit(train_set, y=None, epochs=n_epochs)
