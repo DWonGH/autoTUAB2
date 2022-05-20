@@ -181,56 +181,8 @@ with open(log_path,'a') as f:
 
         print(windows_ds.description)
 
-        import torch
-        from sklearn.model_selection import train_test_split
-
-        if split_way=='proportion':
-            idx_train, idx_valid_test = train_test_split(np.arange(len(windows_ds.description['path'])),
-                                                    random_state=random_state,
-                                                    train_size=train_size,
-                                                    shuffle=shuffle)
-            idx_valid,idx_test=train_test_split(idx_valid_test,random_state=random_state,test_size=test_size,shuffle=shuffle)
-            splits = windows_ds.split(
-                {"train": idx_train, "valid": idx_valid, "test": idx_test}
-            )
-            valid_set = splits["valid"]
-            train_set = splits["train"]
-            test_set = splits["test"]
-
-
-
-            # valid_set = torch.utils.data.Subset(windows_ds, idx_valid)
-            # train_set = torch.utils.data.Subset(windows_ds, idx_train)
-            # test_set=torch.utils.data.Subset(windows_ds, idx_test)
-        elif (split_way=='folder') :#this funtion do not create test_set now
-            des=windows_ds.description
-            if 'train' not in list(des):
-                des['train']=[2]*len(des['path'])
-            path=des['path']
-            train=des['train']
-            for i in range(len(train)):
-                if train[i]!=True and train[i]!=False:
-                    # print(train[i])
-                    if 'train' in path[i]:
-                        # print(path[i])
-                        des['train']=True
-                    elif 'eval' in path[i]:
-                        des['train']=False
-            windows_ds.set_description(des,overwrite=True)
-            # print(windows_ds.description)
-            splits=windows_ds.split('train')
-            # print(splits)
-            train_valid_set=splits['True']
-            test_set=splits['False']
-            idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
-                                                         random_state=random_state,
-                                                         train_size=train_size,
-                                                         shuffle=shuffle)
-            splits = windows_ds.split(
-                {"train": idx_train, "valid": idx_valid}
-            )
-            valid_set = splits["valid"]
-            train_set = splits["train"]
+        # Split the data:
+        train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state)
 
         etl_time = time.time() - data_loading_start
 
@@ -252,6 +204,15 @@ with open(log_path,'a') as f:
                   sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
                   model_name, final_conv_length, window_stride_samples, relabel_dataset, relabel_label, \
                   channels)
+
+            if shuffle and i>0:
+                # Re-split the data to ensure each repetition uses a different split:
+                train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
+                                                            random_state=random_state+i)
+
+            if model_name=='vit':
+                # Avoid memory errors by forcing smaller batch size
+                batch_size = min(batch_size, 4)
 
             mne.set_log_level(mne_log_level)
             def exp(drop_prob=0.2,n_blocks=8, n_filters=2, kernel_size=11):
