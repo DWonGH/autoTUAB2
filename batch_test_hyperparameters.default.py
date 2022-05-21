@@ -54,7 +54,7 @@ VALID_SIZE=[0.2]
 TEST_SIZE=[0.2]
 SHUFFLE = [True]
 MODEL_NAME = ['hybridnet_1']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
-                        # 'hybridnet_1','eegresnet'
+                        # 'hybridnet_1','eegresnet', 'vit'
 FINAL_CONV_LENGTH = ["auto"]
 WINDOW_STRIDE_SAMPLES=[None] #if None, window_stride_samples = window_len_samples
 #The next two parameters can be extended. For example, [dataset1,dataset2,...] [label1,label2,...]

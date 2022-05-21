@@ -31,6 +31,7 @@ from vit import ViT
 from util import *
 from batch_test_hyperparameters import *
 
+pd.set_option('display.max_columns', 10)
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -181,56 +182,8 @@ with open(log_path,'a') as f:
 
         print(windows_ds.description)
 
-        import torch
-        from sklearn.model_selection import train_test_split
-
-        if split_way=='proportion':
-            idx_train, idx_valid_test = train_test_split(np.arange(len(windows_ds.description['path'])),
-                                                    random_state=random_state,
-                                                    train_size=train_size,
-                                                    shuffle=shuffle)
-            idx_valid,idx_test=train_test_split(idx_valid_test,random_state=random_state,test_size=test_size,shuffle=shuffle)
-            splits = windows_ds.split(
-                {"train": idx_train, "valid": idx_valid, "test": idx_test}
-            )
-            valid_set = splits["valid"]
-            train_set = splits["train"]
-            test_set = splits["test"]
-
-
-
-            # valid_set = torch.utils.data.Subset(windows_ds, idx_valid)
-            # train_set = torch.utils.data.Subset(windows_ds, idx_train)
-            # test_set=torch.utils.data.Subset(windows_ds, idx_test)
-        elif (split_way=='folder') :#this funtion do not create test_set now
-            des=windows_ds.description
-            if 'train' not in list(des):
-                des['train']=[2]*len(des['path'])
-            path=des['path']
-            train=des['train']
-            for i in range(len(train)):
-                if train[i]!=True and train[i]!=False:
-                    # print(train[i])
-                    if 'train' in path[i]:
-                        # print(path[i])
-                        des['train']=True
-                    elif 'eval' in path[i]:
-                        des['train']=False
-            windows_ds.set_description(des,overwrite=True)
-            # print(windows_ds.description)
-            splits=windows_ds.split('train')
-            # print(splits)
-            train_valid_set=splits['True']
-            test_set=splits['False']
-            idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
-                                                         random_state=random_state,
-                                                         train_size=train_size,
-                                                         shuffle=shuffle)
-            splits = windows_ds.split(
-                {"train": idx_train, "valid": idx_valid}
-            )
-            valid_set = splits["valid"]
-            train_set = splits["train"]
+        # Split the data:
+        train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size)
 
         etl_time = time.time() - data_loading_start
 
@@ -256,6 +209,15 @@ with open(log_path,'a') as f:
             # model_name=model_and_hpara['model_name']
             # print(model_name)
             hpara=model_and_hpara['hpara']
+
+            if shuffle and i>0:
+                # Re-split the data to ensure each repetition uses a different split:
+                train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
+                                                            random_state=random_state+i)
+
+            if model_name=='vit':
+                # Avoid memory errors by forcing smaller batch size
+                batch_size = min(batch_size, 4)
 
             mne.set_log_level(mne_log_level)
             def exp(drop_prob=0.2,n_blocks=8, n_filters=2, kernel_size=11):
@@ -336,7 +298,7 @@ with open(log_path,'a') as f:
                 cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
                 callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)]
                 if earlystopping:
-                    es=EarlyStopping()
+                    es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=5)
                     callbacks.append(('es',es))
                 clf = EEGClassifier(
                     model,
@@ -353,6 +315,10 @@ with open(log_path,'a') as f:
                     callbacks=callbacks,
                     device=device,
                 )
+
+                # Prevent GPU memory fragmentation
+                torch.cuda.empty_cache()
+
                 # Model training for a specified number of epochs. `y` is None as it is already supplied
                 # in the dataset.
                 clf.fit(train_set, y=None, epochs=n_epochs)

@@ -1,16 +1,11 @@
-from itertools import product
-import time
 import os
 from braindecode.datasets import create_from_X_y
-
-import csv
 import mne
+import csv
 import numpy as np
-import pandas as pd
-import seaborn as sns
 import glob
 import re
-import pandas as pd
+from sklearn.model_selection import train_test_split
 
 def get_full_filelist(base_dir='.', target_ext='') -> list:
     fname_list = []
@@ -280,3 +275,54 @@ def custom_crop(raw, tmin=0.0, tmax=None, include_tmax=True):
     # by default mne fails if tmax is bigger than duration
     tmax = min((raw.n_times - 1) / raw.info['sfreq'], tmax)
     raw.crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
+
+
+def split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size):
+    if split_way == 'proportion':
+        idx_train, idx_valid_test = train_test_split(np.arange(len(windows_ds.description['path'])),
+                                                     random_state=random_state,
+                                                     train_size=train_size,
+                                                     shuffle=shuffle)
+        idx_valid, idx_test = train_test_split(idx_valid_test, random_state=random_state, test_size=test_size/(test_size+valid_size),
+                                               shuffle=shuffle)
+        splits = windows_ds.split(
+            {"train": idx_train, "valid": idx_valid, "test": idx_test}
+        )
+        valid_set = splits["valid"]
+        train_set = splits["train"]
+        test_set = splits["test"]
+
+        # valid_set = torch.utils.data.Subset(windows_ds, idx_valid)
+        # train_set = torch.utils.data.Subset(windows_ds, idx_train)
+        # test_set=torch.utils.data.Subset(windows_ds, idx_test)
+    elif (split_way == 'folder'):  # this funtion do not create test_set now
+        des = windows_ds.description
+        if 'train' not in list(des):
+            des['train'] = [2] * len(des['path'])
+        path = des['path']
+        train = des['train']
+        for i in range(len(train)):
+            if train[i] != True and train[i] != False:
+                # print(train[i])
+                if 'train' in path[i]:
+                    # print(path[i])
+                    des['train'] = True
+                elif 'eval' in path[i]:
+                    des['train'] = False
+        windows_ds.set_description(des, overwrite=True)
+        # print(windows_ds.description)
+        splits = windows_ds.split('train')
+        # print(splits)
+        train_valid_set = splits['True']
+        test_set = splits['False']
+        idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
+                                                random_state=random_state,
+                                                train_size=train_size,
+                                                shuffle=shuffle)
+        splits = windows_ds.split(
+            {"train": idx_train, "valid": idx_valid}
+        )
+        valid_set = splits["valid"]
+        train_set = splits["train"]
+
+    return train_set, valid_set, test_set
