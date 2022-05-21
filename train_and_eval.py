@@ -23,6 +23,7 @@ from braindecode.preprocessing import (
     exponential_moving_standardize, preprocess, Preprocessor, scale)
 from braindecode.util import np_to_th
 from braindecode.datautil import load_concat_dataset
+from deep4_1 import Deep4Net_1
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
 from vit import ViT
@@ -240,9 +241,9 @@ with open(log_path,'a') as f:
 
 
         # Iterate over model/training hyperparameters
-        for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length) \
+        for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length,model_and_hpara) \
           in product(range(N_REPETITIONS), N_CLASSES, LR, WEIGHT_DECAY, BATCH_SIZE, N_EPOCHS, MODEL_NAME, \
-          FINAL_CONV_LENGTH):
+          FINAL_CONV_LENGTH,MODEL_AND_HPARA):
             print(i, mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
                   tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
                   load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
@@ -251,6 +252,10 @@ with open(log_path,'a') as f:
                   sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
                   model_name, final_conv_length, window_stride_samples, relabel_dataset, relabel_label, \
                   channels)
+            # print(model_name)
+            # model_name=model_and_hpara['model_name']
+            # print(model_name)
+            hpara=model_and_hpara['hpara']
 
             mne.set_log_level(mne_log_level)
             def exp(drop_prob=0.2,n_blocks=8, n_filters=2, kernel_size=11):
@@ -268,6 +273,15 @@ with open(log_path,'a') as f:
                                 first_pool_mode="max", later_pool_mode="max", drop_prob=0.5,
                                 double_time_convs=False, split_first_layer=True, batch_norm=True,
                                 batch_norm_alpha=0.1, stride_before_pool=False)
+                elif model_name=='deep4_1':
+                    model=Deep4Net_1(n_channels, n_classes, input_window_samples=window_len_samples,
+                                final_conv_length=final_conv_length, n_filters_time=25, n_filters_spat=25,
+                                filter_time_length=10, pool_time_length=3, pool_time_stride=3,
+                                n_filters_2=50, filter_length_2=10, n_filters_3=100,
+                                filter_length_3=10, n_filters_4=200, filter_length_4=10,
+                                first_pool_mode="max", later_pool_mode="max", drop_prob=0.5,
+                                double_time_convs=False, split_first_layer=True, batch_norm=True,
+                                batch_norm_alpha=0.1, stride_before_pool=False,hpara=hpara)
                 elif model_name=='shallow_smac':
                     model = ShallowFBCSPNet(
                         n_channels, n_classes, input_window_samples=window_len_samples,
@@ -320,7 +334,10 @@ with open(log_path,'a') as f:
 
                 monitor = lambda net: all(net.history[-1, ('train_loss_best', 'valid_loss_best')])
                 cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
-                # es=EarlyStopping()
+                callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)]
+                if earlystopping:
+                    es=EarlyStopping()
+                    callbacks.append(('es',es))
                 clf = EEGClassifier(
                     model,
                     criterion=torch.nn.NLLLoss,
@@ -329,10 +346,11 @@ with open(log_path,'a') as f:
                     optimizer__lr=lr,
                     optimizer__weight_decay=weight_decay,
                     batch_size=batch_size,
-                    callbacks=[
-                        "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp),\
-                        # ("es",es)
-                    ],
+                    # callbacks=[
+                    #     "accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp),\
+                    #     # ("es",es)
+                    # ],
+                    callbacks=callbacks,
                     device=device,
                 )
                 # Model training for a specified number of epochs. `y` is None as it is already supplied
@@ -390,12 +408,18 @@ with open(log_path,'a') as f:
                 # print('y_true:',y_true)
                 # print(len(y_true))
                 y_pred = clf.predict(test_set)
+                y_pred_proba=clf.predict_proba(test_set)
+
+
+
+
                 # print(y_pred)
                 # print('y_pred:',y_pred)
                 # print(len(y_pred))
                 confusion_mat_per_recording=con_mat(starts,y_true,y_pred)
+                confusion_mat_per_recording_proba=con_mat(starts,y_true,y_pred,True,y_pred_proba)
                 print(confusion_mat_per_recording)
-                # print(type(confusion_mat_per_recording))
+                print(confusion_mat_per_recording_proba)
 
 
                 # generating confusion matrix

@@ -2,6 +2,7 @@
 log_path="result.csv"
 plot_result=False
 BO=False
+earlystopping=False
 
 MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
 
