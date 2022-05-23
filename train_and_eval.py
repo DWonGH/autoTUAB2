@@ -83,7 +83,7 @@ with open(log_path,'a') as f:
 
         window_len_samples = window_len_s*sampling_freq
         if load_saved_windows:
-            load_ids = list(range(n_load))
+            load_ids = list(range(n_load)) if n_load else None
             windows_ds = load_concat_dataset(
                 path=saved_windows_path,
                 preload=False,
@@ -92,7 +92,7 @@ with open(log_path,'a') as f:
             )
         else:
             if load_saved_data:
-                load_ids=list(range(n_load))
+                load_ids=list(range(n_load)) if n_load else None
                 ds=load_concat_dataset(
                 path=saved_path,
                 preload=preload,
@@ -100,7 +100,7 @@ with open(log_path,'a') as f:
                 target_name='pathological',
             )
             else:
-                tuab_ids = list(range(n_tuab))
+                tuab_ids = list(range(n_tuab)) if n_tuab else None
                 ds_tuab= TUHAbnormal(
                     tuab_path, recording_ids=tuab_ids,target_name='pathological',
                     preload=preload)
