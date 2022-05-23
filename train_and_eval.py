@@ -395,6 +395,10 @@ with open(log_path,'a') as f:
                  sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
                  model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
                  channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording])
+
+                # Make sure the csvwriter actually writes now.
+                f.flush()
+
                 # print(type(confusion_mat[0][0]))
                 # # add class labels
                 # # label_dict is class_name : str -> i_class : int
