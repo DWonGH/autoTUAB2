@@ -1,10 +1,65 @@
 import os
+from braindecode.datasets import create_from_X_y
+import mne
 import csv
 import numpy as np
 import glob
 import re
 from sklearn.model_selection import train_test_split
 
+def get_full_filelist(base_dir='.', target_ext='') -> list:
+    fname_list = []
+
+
+    for fname in os.listdir(base_dir):
+
+        path = os.path.join(base_dir, fname)
+
+        if os.path.isfile(path):
+
+            fname_main, fname_ext = os.path.splitext(fname)
+
+            if fname_ext == target_ext or target_ext == '':
+
+                fname_list.append(path)
+
+        elif os.path.isdir(path):
+
+            temp_list = get_full_filelist(path, target_ext)
+
+            fname_list = fname_list + temp_list
+        else:
+            pass
+
+    return fname_list
+def load_brainvision_as_windows(data_folder):
+    paths = get_full_filelist(data_folder,'.vhdr')
+    print(paths)
+
+    parts = [mne.io.read_raw_brainvision(path, preload=True, verbose=False)
+             for path in paths]
+
+    X = [raw.get_data() for raw in parts]
+    y = [1 for raw in parts]
+    sfreq = parts[0].info["sfreq"]
+    ch_names = parts[0].info["ch_names"]
+    # for i in ch_names:
+    #     print(i)
+    # channels = [
+    #     'A1', 'A2',
+    #     'FP1', 'FP2', 'F3', 'F4', 'C3',
+    #     'C4', 'P3', 'P4', 'O1', 'O2',
+    #     'F7', 'F8', 'T3', 'T4', 'T5',
+    #     'T6', 'FZ', 'CZ', 'PZ']
+    # res = [v for v in ch_names if v in channels]
+    # print(res)
+    # print(len(res))
+    windows_dataset = create_from_X_y(
+        X, y, drop_last_window=False, sfreq=sfreq, ch_names=ch_names,
+        window_stride_samples=6000,
+        window_size_samples=6000,
+    )
+    return windows_dataset
 def find_all_zero(input):
     res=[]
     for i in range(len(input)):
@@ -15,7 +70,32 @@ def find_all_zero(input):
 
 def top1(lst):
     return max(lst, default='empty', key=lambda v: lst.count(v))
-def con_mat(starts,b,c):
+def top1_prob(prob):
+    normal=sum(prob[:,0])
+    abnormal=sum(prob[:,1])
+    # print('normal',normal)
+    # print('abnormal',abnormal)
+
+    if abnormal>normal:
+        return 1
+    else:
+        return 0
+def top1_prob1(prob,predict):
+    abnormal=sum(prob[:,1]*predict)
+    predict=1-np.array(predict)
+    normal=sum(prob[:,0]*predict)
+    if abnormal>normal:
+        return 1
+    else:
+        return 0
+
+
+
+
+
+def con_mat(starts,b,c,use_prob=False,prob=None):
+    if use_prob:
+        prob=np.exp(np.array(prob))
     b = b.tolist()
     TT = 0
     TF = 0
@@ -26,7 +106,15 @@ def con_mat(starts,b,c):
     if len(starts)>1:
         for end in starts[1:]:
             predict=c[begin:end].tolist()
-            predict=top1(predict)
+            # print('predict',predict)
+            if use_prob:
+                prob_recording=prob[begin:end]
+                # print('prob',prob)
+
+                # predict=top1_prob1(prob_recording,predict)
+                predict=top1_prob(prob_recording)
+            else:
+                predict=top1(predict)
             if predict==True:
                 if b[begin]==True:
                     TT+=1
@@ -189,13 +277,13 @@ def custom_crop(raw, tmin=0.0, tmax=None, include_tmax=True):
     raw.crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
 
-def split_data(windows_ds, split_way, train_size, shuffle, random_state):
+def split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size):
     if split_way == 'proportion':
         idx_train, idx_valid_test = train_test_split(np.arange(len(windows_ds.description['path'])),
                                                      random_state=random_state,
                                                      train_size=train_size,
                                                      shuffle=shuffle)
-        idx_valid, idx_test = train_test_split(idx_valid_test, random_state=random_state, test_size=test_size,
+        idx_valid, idx_test = train_test_split(idx_valid_test, random_state=random_state, test_size=test_size/(test_size+valid_size),
                                                shuffle=shuffle)
         splits = windows_ds.split(
             {"train": idx_train, "valid": idx_valid, "test": idx_test}

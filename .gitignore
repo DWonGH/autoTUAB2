@@ -10,6 +10,7 @@ params*.pt
 result.csv
 history.json
 metadata.csv
+deep4_1.py
 
 
 
