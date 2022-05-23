@@ -282,7 +282,7 @@ with open(log_path,'a') as f:
 
                 monitor = lambda net: all(net.history[-1, ('train_loss_best', 'valid_loss_best')])
                 cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
-                es = EarlyStopping(threshold=0.001, threshold_mode='rel', patience=5)
+                es = EarlyStopping(threshold=0.001, threshold_mode='rel', patience=10)
                 clf = EEGClassifier(
                     model,
                     criterion=torch.nn.NLLLoss,
