@@ -1,8 +1,10 @@
 
+
 log_path="result.csv"
-plot_result=False
+plot_result=True
 BO=False
-earlystopping=False
+earlystopping=True
+
 
 MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
 
@@ -13,7 +15,7 @@ TUAB=[True]
 TUEG=[True]
 N_TUAB=[50]
 N_TUEG=[50]
-N_LOAD=[50]
+N_LOAD=[25]
 PRELOAD=[True]
 WINDOW_LEN_S=[60]
 TUAB_PATH = ['D:/phd/tuab3g/v2.0.0/edf']
@@ -29,7 +31,7 @@ LOW_CUT_HZ = [4. ] # low cut frequency for filtering
 HIGH_CUT_HZ = [38.  ]# high cut frequency for filtering
 
 # Parameters for exponential moving standardization
-STANDARDIZATION=[False]
+STANDARDIZATION=[True]
 FACTOR_NEW = [1e-3]
 INIT_BLOCK_SIZE = [1000]
 
@@ -37,7 +39,7 @@ N_JOBS = [8]
 N_CLASSES = [2]
 LR = [0.001]
 WEIGHT_DECAY = [0.5 * 0.001]
-BATCH_SIZE = [64]
+BATCH_SIZE = [1]
 N_EPOCHS = [2]
 # determine length of the recordings and select based on tmin and tmax
 TMIN = [5 * 60]
@@ -53,9 +55,13 @@ TRAIN_SIZE=[0.6 ]#train_size+valid_size+test_size=1.0
 VALID_SIZE=[0.2]
 TEST_SIZE=[0.2]
 SHUFFLE = [True]
-MODEL_NAME = ['hybridnet_1']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
-                        # 'hybridnet_1','eegresnet', 'vit'
+MODEL_NAME = ['vit']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
+                        # 'hybridnet_1','eegresnet','vit'
+# model specific hyperparameters
+DEEP4_BATCH_NORM_ALPHA=[0.1,0.2]
+
 FINAL_CONV_LENGTH = ["auto"]
+DROPOUT=[0.1]
 WINDOW_STRIDE_SAMPLES=[None] #if None, window_stride_samples = window_len_samples
 #The next two parameters can be extended. For example, [dataset1,dataset2,...] [label1,label2,...]
 RELABEL_DATASET=[['D:/phd/tueg1g']]

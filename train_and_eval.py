@@ -30,6 +30,7 @@ from vit import ViT
 
 from util import *
 from batch_test_hyperparameters import *
+from train_and_eval_config import *
 
 pd.set_option('display.max_columns', 10)
 
@@ -108,7 +109,7 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
             print(ds_tuab.description)
 
             if tueg:
-                tueg_ids=list(range(n_tueg))
+                tueg_ids=list(range(n_tueg)) if n_tueg else None
                 ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
                     preload=preload)
                 print(ds_tueg.description)
@@ -162,7 +163,6 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
         if not window_stride_samples:
             window_stride_samples = window_len_samples
 
-
         # window_stride_samples = int(fs * window_len_s)
         windows_ds = create_fixed_length_windows(
             ds, start_offset_samples=0, stop_offset_samples=None,
@@ -191,7 +191,6 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
 
     print("n_channels:",n_channels)
     # n_times = windows_ds[0][0].shape[1]
-
 
     # Iterate over model/training hyperparameters
     for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length,model_and_hpara) \
@@ -298,7 +297,7 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
             cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
             callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)]
             if earlystopping:
-                es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=10)
+                es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=5)
                 callbacks.append(('es',es))
             clf = EEGClassifier(
                 model,
@@ -422,7 +421,6 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
                  sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
                  model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
                  channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording])
-
 
             # print(type(confusion_mat[0][0]))
             # # add class labels
