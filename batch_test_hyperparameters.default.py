@@ -1,21 +1,16 @@
-
-
-log_path="result.csv"
-plot_result=True
-BO=False
-earlystopping=True
-
-
-MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
-
 # parameters
+
 N_REPETITIONS=1
 RANDOM_STATE = [87]
 TUAB=[True]
 TUEG=[True]
+
+# Setting any of the following to None will use all available recordings in the corresponding category.
+# e.g. N_TUAB = None will use all recordings in the TUAB dataset.
 N_TUAB=[50]
 N_TUEG=[50]
 N_LOAD=[25]
+
 PRELOAD=[True]
 WINDOW_LEN_S=[60]
 TUAB_PATH = ['D:/phd/tuab3g/v2.0.0/edf']

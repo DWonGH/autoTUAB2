@@ -286,7 +286,7 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
             cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
             callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)]
             if earlystopping:
-                es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=10)
+                es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=es_patience)
                 callbacks.append(('es',es))
             clf = EEGClassifier(
                 model,
