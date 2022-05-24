@@ -39,7 +39,7 @@ with open(log_path,'a') as f:
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
     writer.writerow(['train_loss', 'valid_loss',  'train_accuracy',  'valid_accuracy','etl_time','model_training_time',\
      'test_acc','test_precision','test_recall',\
-     'n_repetition','mne_log_level','random_state','tuab','tueg','n_tuab','n_tueg','n_load','preload','window_len_s',\
+     'n_repetition','random_state','tuab','tueg','n_tuab','n_tueg','n_load','preload','window_len_s',\
      'tuab_path','tueg_path','saved_data','saved_path','saved_windows_data','saved_windows_path',\
      'load_saved_data','load_saved_windows','bandpass_filter','low_cut_hz','high_cut_hz',\
      'standardization','factor_new','init_block_size','n_jobs','n_classes','lr','weight_decay',\
@@ -49,20 +49,20 @@ with open(log_path,'a') as f:
      'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording','acc_per_recording'])
 
 # Iterate over data/preproc parameters
-for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
+for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
      tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
      load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
      standardization,factor_new,init_block_size,n_jobs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
      sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,window_stride_samples,\
      relabel_dataset,relabel_label,channels) in product(
-            MNE_LOG_LEVEL,RANDOM_STATE,TUAB,TUEG,N_TUAB,N_TUEG,N_LOAD,PRELOAD,\
+            RANDOM_STATE,TUAB,TUEG,N_TUAB,N_TUEG,N_LOAD,PRELOAD,\
             WINDOW_LEN_S,TUAB_PATH,TUEG_PATH,SAVED_DATA,SAVED_PATH,SAVED_WINDOWS_DATA,\
             SAVED_WINDOWS_PATH,LOAD_SAVED_DATA,LOAD_SAVED_WINDOWS,BANDPASS_FILTER,\
             LOW_CUT_HZ,HIGH_CUT_HZ,STANDARDIZATION,FACTOR_NEW,INIT_BLOCK_SIZE,N_JOBS,\
             TMIN,TMAX,MULTIPLE,SEC_TO_CUT,\
             DURATION_RECORDING_SEC,MAX_ABS_VAL,SAMPLING_FREQ,TEST_ON_VAL,SPLIT_WAY,\
             TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS):
-    print(mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
+    print(random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
     tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
     load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
     standardization, factor_new, init_block_size, n_jobs, \
@@ -197,7 +197,7 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
     for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length,dropout) \
       in product(range(N_REPETITIONS), N_CLASSES, LR, WEIGHT_DECAY, BATCH_SIZE, N_EPOCHS, MODEL_NAME, \
       FINAL_CONV_LENGTH,DROPOUT):
-        print(i, mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
+        print(i, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
               tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
               load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
               standardization, factor_new, init_block_size, n_jobs, n_classes, lr, weight_decay, \
@@ -401,7 +401,7 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
                 for i in range(his_len-1):
                     writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
                 writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
-                 model_training_time,acc,precision,recall,i,mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
+                 model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
                  window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
                  load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
                  standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
