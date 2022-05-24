@@ -192,10 +192,11 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
     print("n_channels:",n_channels)
     # n_times = windows_ds[0][0].shape[1]
 
+
     # Iterate over model/training hyperparameters
-    for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length,model_and_hpara) \
+    for (i, n_classes, lr, weight_decay, batch_size, n_epochs, model_name, final_conv_length,dropout) \
       in product(range(N_REPETITIONS), N_CLASSES, LR, WEIGHT_DECAY, BATCH_SIZE, N_EPOCHS, MODEL_NAME, \
-      FINAL_CONV_LENGTH,MODEL_AND_HPARA):
+      FINAL_CONV_LENGTH,DROPOUT):
         print(i, mne_log_level, random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
               tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
               load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
@@ -204,11 +205,6 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
               sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
               model_name, final_conv_length, window_stride_samples, relabel_dataset, relabel_label, \
               channels)
-        # print(model_name)
-        # model_name=model_and_hpara['model_name']
-        # print(model_name)
-        hpara=model_and_hpara['hpara']
-
         if shuffle and i>0:
             # Re-split the data to ensure each repetition uses a different split:
             train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
@@ -223,59 +219,52 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
             n_blocks=int(n_blocks)
             n_filters=int(n_filters)
             kernel_size=int(kernel_size)
-            print(drop_prob,n_blocks, n_filters, kernel_size)
+
+            # print(deep4_batch_norm_alpha)
+            # print(drop_prob,n_blocks, n_filters, kernel_size)
             if model_name=='deep4':
                 model = Deep4Net(
                             n_channels, n_classes, input_window_samples=window_len_samples,
-                            final_conv_length=final_conv_length, n_filters_time=25, n_filters_spat=25,
-                            filter_time_length=10, pool_time_length=3, pool_time_stride=3,
-                            n_filters_2=50, filter_length_2=10, n_filters_3=100,
-                            filter_length_3=10, n_filters_4=200, filter_length_4=10,
-                            first_pool_mode="max", later_pool_mode="max", drop_prob=0.5,
+                            final_conv_length=final_conv_length, n_filters_time=deep4_n_filters_time, n_filters_spat=deep4_n_filters_spat,
+                            filter_time_length=deep4_filter_time_length, pool_time_length=deep4_pool_time_length, pool_time_stride=deep4_pool_time_stride,
+                            n_filters_2=deep4_n_filters_2, filter_length_2=deep4_filter_length_2, n_filters_3=deep4_n_filters_3,
+                            filter_length_3=deep4_filter_length_3, n_filters_4=deep4_n_filters_4, filter_length_4=deep4_filter_length_4,
+                            first_pool_mode=deep4_first_pool_mode, later_pool_mode=deep4_later_pool_mode, drop_prob=dropout,
                             double_time_convs=False, split_first_layer=True, batch_norm=True,
                             batch_norm_alpha=0.1, stride_before_pool=False)
-            elif model_name=='deep4_1':
-                model=Deep4Net_1(n_channels, n_classes, input_window_samples=window_len_samples,
-                            final_conv_length=final_conv_length, n_filters_time=25, n_filters_spat=25,
-                            filter_time_length=10, pool_time_length=3, pool_time_stride=3,
-                            n_filters_2=50, filter_length_2=10, n_filters_3=100,
-                            filter_length_3=10, n_filters_4=200, filter_length_4=10,
-                            first_pool_mode="max", later_pool_mode="max", drop_prob=0.5,
-                            double_time_convs=False, split_first_layer=True, batch_norm=True,
-                            batch_norm_alpha=0.1, stride_before_pool=False,hpara=hpara)
             elif model_name=='shallow_smac':
                 model = ShallowFBCSPNet(
                     n_channels, n_classes, input_window_samples=window_len_samples,
-                    n_filters_time=40, filter_time_length=25, n_filters_spat=40,
-                    pool_time_length=75, pool_time_stride=15, final_conv_length=final_conv_length,
-                    split_first_layer=True, batch_norm=True, batch_norm_alpha=0.1,
-                    drop_prob=0.5)
+                    n_filters_time=shallow_n_filters_time, filter_time_length=shallow_filter_time_length, n_filters_spat=shallow_n_filters_spat,
+                    pool_time_length=shallow_pool_time_length, pool_time_stride=shallow_pool_time_stride, final_conv_length=final_conv_length,
+                    split_first_layer=shallow_split_first_layer, batch_norm=shallow_batch_norm, batch_norm_alpha=shallow_batch_norm_alpha,
+                    drop_prob=dropout)
             elif model_name=='eegnetv4':
                 model=EEGNetv4(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length,
                                             pool_mode='mean', F1=8, D=2, F2=16, kernel_length=64, third_kernel_size=(8, 4),
-                                            drop_prob=0.25)
+                                            drop_prob=dropout)
             elif model_name=='eegnetv1':
-                model=EEGNetv1(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length, pool_mode='max', second_kernel_size=(2, 32), third_kernel_size=(8, 4), drop_prob=0.25)
+                model=EEGNetv1(n_channels, n_classes, input_window_samples=window_len_samples, final_conv_length=final_conv_length, pool_mode='max', second_kernel_size=(2, 32), third_kernel_size=(8, 4), drop_prob=dropout)
             elif model_name=='eegresnet':
                 model=EEGResNet(n_channels, n_classes, window_len_samples, final_conv_length, n_first_filters=10, n_layers_per_block=2, first_filter_length=3, split_first_layer=True, batch_norm_alpha=0.1, batch_norm_epsilon=0.0001)
             elif model_name=='tcn':
-                model=TCN(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=12, drop_prob=0.2, add_log_softmax=False)
+                model=TCN(n_channels, n_classes, n_blocks=8, n_filters=2, kernel_size=12, drop_prob=dropout, add_log_softmax=False)
             elif model_name=='sleep2020':
-                model=SleepStagerBlanco2020(n_channels, sampling_freq, n_conv_chans=20, input_size_s=60, n_classes=2, n_groups=3, max_pool_size=2, dropout=0.5, apply_batch_norm=False, return_feats=False)
+                model=SleepStagerBlanco2020(n_channels, sampling_freq, n_conv_chans=20, input_size_s=60, n_classes=2, n_groups=3, max_pool_size=2, dropout=dropout, apply_batch_norm=False, return_feats=False)
             elif model_name=='sleep2018':
-                model=SleepStagerChambon2018(n_channels, sampling_freq, n_conv_chs=8, time_conv_size_s=0.5, max_pool_size_s=0.125, pad_size_s=0.25, input_size_s=60, n_classes=2, dropout=0.25, apply_batch_norm=False, return_feats=False)
+                model=SleepStagerChambon2018(n_channels, sampling_freq, n_conv_chs=8, time_conv_size_s=0.5, max_pool_size_s=0.125, pad_size_s=0.25, input_size_s=60, n_classes=n_classes, dropout=dropout, apply_batch_norm=False, return_feats=False)
             elif model_name=='usleep':
                 model=USleep(in_chans=n_channels, sfreq=sampling_freq, depth=12, n_time_filters=5, complexity_factor=1.67, with_skip_connection=True, n_classes=2, input_size_s=60, time_conv_size_s=0.0703125, ensure_odd_conv_size=False, apply_softmax=False)
             elif model_name=='tidnet':
-                model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=0.4, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
+                model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=dropout, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
             elif model_name=='tcn_1':
-                model=TCN_1(n_channels, n_classes, n_blocks=n_blocks, n_filters=n_filters, kernel_size=kernel_size, drop_prob=drop_prob, add_log_softmax=True,input_window_samples=window_len_samples,last_layer_type='max_pool')
+                model=TCN_1(n_channels, n_classes, n_blocks=tcn_n_blocks, n_filters=tcn_n_filters, kernel_size=tcn_kernel_size, drop_prob=dropout, add_log_softmax=tcn_add_log_softmax,input_window_samples=window_len_samples,last_layer_type=tcn_last_layer_type)
             elif model_name=='hybridnet':
                 model=HybridNet(n_channels,n_classes,window_len_samples)
             elif model_name == 'hybridnet_1':
                 model = HybridNet_1(n_channels, n_classes, window_len_samples)
             elif model_name == 'vit':
-                model = ViT(num_channels=n_channels,input_window_samples = window_len_samples,patch_size = 100,num_classes = n_classes,dim = 128,depth = 6,heads = 16,mlp_dim = 128,dropout = 0.1,emb_dropout = 0.1)
+                model = ViT(num_channels=n_channels,input_window_samples = window_len_samples,patch_size = vit_patch_size,num_classes = n_classes,dim = vit_dim,depth = vit_depth,heads = vit_heads,mlp_dim = vit_mlp_dim,dropout = dropout,emb_dropout = vit_emb_dropout)
 
             print(get_output_shape(model,n_channels,window_len_samples))
             print(model)
@@ -297,7 +286,7 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
             cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
             callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)]
             if earlystopping:
-                es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=5)
+                es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=10)
                 callbacks.append(('es',es))
             clf = EEGClassifier(
                 model,
@@ -407,7 +396,6 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
             print('etl_time:',etl_time)
             print('model_training_time:',model_training_time)
             his_len=len(df)
-
             with open(log_path, 'a') as f:
                 writer = csv.writer(f, delimiter=',', lineterminator='\n', )
                 for i in range(his_len-1):
@@ -439,21 +427,25 @@ for (mne_log_level,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_le
                 plot_confusion_matrix(confusion_mat_per_recording, class_names=labels)
                 plt.show()
 
-            return acc
+                return acc
 
-        if BO:
-            bounds_transformer = SequentialDomainReductionTransformer()
-            pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
-            mutating_optimizer = BayesianOptimization(
-                f=exp,
-                pbounds=pbounds,
-                verbose=0,
-                random_state=1,
-                bounds_transformer=bounds_transformer
-            )
-            mutating_optimizer.maximize(
-                init_points=0,
-                n_iter=1,
-            )
-        else:
-            exp()
+            if BO:
+                bounds_transformer = SequentialDomainReductionTransformer()
+                pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
+                mutating_optimizer = BayesianOptimization(
+                    f=exp,
+                    pbounds=pbounds,
+                    verbose=0,
+                    random_state=1,
+                    bounds_transformer=bounds_transformer
+                )
+                mutating_optimizer.maximize(
+                    init_points=0,
+                    n_iter=1,
+                )
+            else:
+                if model_name=='deep4':
+                    for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
+                        exp()
+                else:
+                    exp()
