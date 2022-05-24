@@ -29,8 +29,11 @@ from hybrid_1 import HybridNet_1
 from vit import ViT
 
 from util import *
-from batch_test_hyperparameters import *
 from train_and_eval_config import *
+from batch_test_hyperparameters import *
+
+import warnings
+warnings.filterwarnings("once")
 
 pd.set_option('display.max_columns', 10)
 
