@@ -5,6 +5,7 @@ plot_result = True
 BO = False
 earlystopping = True
 es_patience = 10
+train_whole_dataset_again=True
 
 # Set verbosity of outputs from MNE library.
 # Options: DEBUG, INFO, WARNING, ERROR, or CRITICAL.
