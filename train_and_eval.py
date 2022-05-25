@@ -34,6 +34,12 @@ from train_and_eval_config import *
 
 pd.set_option('display.max_columns', 10)
 
+# import globalvar as gl
+# gl._init()
+#
+# gl.set_value('val_a',0 )
+
+
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
@@ -320,6 +326,7 @@ with open(log_path,'a') as f:
                 # Extract loss and accuracy values for plotting from history object
                 results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
                 # print(clf.history)
+
                 df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
                                   index=clf.history[:, 'epoch'])
                 # get percent of misclass for better visual comparison to loss
@@ -425,6 +432,16 @@ with open(log_path,'a') as f:
                     plot_confusion_matrix(confusion_mat_per_recording, class_names=labels)
                     plt.show()
 
+                if train_whole_dataset_again:
+                    with open('./training_detail.csv', 'a') as f1:
+                        writer1 = csv.writer(f1, delimiter=',', lineterminator='\n', )
+                        windows_true = windows_ds.get_metadata().target
+                        writer1.writerow(windows_true)
+                        windows_pred=np.exp(np.array(clf.predict_proba(windows_ds)[:,1]))
+                        writer1.writerow(windows_pred)
+                        writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+
+
                 return acc
 
             if BO:
@@ -441,6 +458,7 @@ with open(log_path,'a') as f:
                     init_points=0,
                     n_iter=1,
                 )
+
             else:
                 if model_name=='deep4':
                     for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):

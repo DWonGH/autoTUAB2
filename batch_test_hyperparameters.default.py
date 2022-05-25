@@ -4,6 +4,7 @@ log_path="result.csv"
 plot_result=True
 BO=False
 earlystopping=True
+train_whole_dataset_again=True
 
 
 MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
@@ -55,7 +56,7 @@ TRAIN_SIZE=[0.6 ]#train_size+valid_size+test_size=1.0
 VALID_SIZE=[0.2]
 TEST_SIZE=[0.2]
 SHUFFLE = [True]
-MODEL_NAME = ['vit']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
+MODEL_NAME = ['tcn_1']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
                         # 'hybridnet_1','eegresnet','vit'
 # model specific hyperparameters
 DEEP4_BATCH_NORM_ALPHA=[0.1,0.2]
