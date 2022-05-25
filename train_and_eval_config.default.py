@@ -1,10 +1,15 @@
 # This file sets various parameters used in train_and_eval.py.
 
+log_path = "result.csv"
+plot_result = True
+BO = False
+earlystopping = True
+es_patience = 10
+
 # Set verbosity of outputs from MNE library.
 # Options: DEBUG, INFO, WARNING, ERROR, or CRITICAL.
 # WARNING or higher avoids messages printing every time a window is extracted.
-
-mne_log_level = 'WARNING'  # avoid messages everytime a window is extracted
+mne_log_level = 'WARNING'
 
 # parameters
 random_state = 87
