@@ -9,6 +9,7 @@ from torch.nn.utils import weight_norm
 
 from braindecode.models.modules import Ensure4d, Expression
 from braindecode.models.functions import squeeze_final_output
+import globalvar as gl
 
 
 class TCN_1(nn.Module):
@@ -128,8 +129,9 @@ class TCN_1(nn.Module):
             out=out.unsqueeze(-1)
         if hasattr(self, "log_softmax"):
             out = self.log_softmax(out)
-
-
+        # val_a=gl.get_value('val_a')
+        # gl.set_value('val_a', val_a+1)
+        # print(gl.get_value('val_a'))
         # re-add 4th dimension for compatibility with braindecode
         return self.squeeze(out[:, :, :, None])
 

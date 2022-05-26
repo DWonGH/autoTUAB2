@@ -36,6 +36,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 pd.set_option('display.max_columns', 10)
+# import globalvar as gl
+# gl._init()
+#
+# gl.set_value('val_a',0 )
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -431,7 +435,15 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 plot_confusion_matrix(confusion_mat_per_recording, class_names=labels)
                 plt.show()
 
-                return acc
+            if train_whole_dataset_again:
+                with open('./training_detail.csv', 'a') as f1:
+                    writer1 = csv.writer(f1, delimiter=',', lineterminator='\n', )
+                    windows_true = windows_ds.get_metadata().target
+                    writer1.writerow(windows_true)
+                    windows_pred=np.exp(np.array(clf.predict_proba(windows_ds)[:,1]))
+                    writer1.writerow(windows_pred)
+                    writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+            return acc
 
         if BO:
             bounds_transformer = SequentialDomainReductionTransformer()
@@ -448,8 +460,13 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 n_iter=1,
             )
         else:
+            print(model_name)
             if model_name=='deep4':
                 for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
                     exp()
             else:
-                exp()
+                if model_name=='deep4':
+                    for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
+                        exp()
+                else:
+                    exp()
