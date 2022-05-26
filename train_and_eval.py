@@ -33,7 +33,7 @@ from train_and_eval_config import *
 from batch_test_hyperparameters import *
 
 import warnings
-warnings.filterwarnings("once")
+warnings.filterwarnings("ignore")
 
 pd.set_option('display.max_columns', 10)
 
