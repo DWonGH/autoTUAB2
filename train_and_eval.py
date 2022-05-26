@@ -432,23 +432,23 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
                 return acc
 
-            if BO:
-                bounds_transformer = SequentialDomainReductionTransformer()
-                pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
-                mutating_optimizer = BayesianOptimization(
-                    f=exp,
-                    pbounds=pbounds,
-                    verbose=0,
-                    random_state=1,
-                    bounds_transformer=bounds_transformer
-                )
-                mutating_optimizer.maximize(
-                    init_points=0,
-                    n_iter=1,
-                )
-            else:
-                if model_name=='deep4':
-                    for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
-                        exp()
-                else:
+        if BO:
+            bounds_transformer = SequentialDomainReductionTransformer()
+            pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
+            mutating_optimizer = BayesianOptimization(
+                f=exp,
+                pbounds=pbounds,
+                verbose=0,
+                random_state=1,
+                bounds_transformer=bounds_transformer
+            )
+            mutating_optimizer.maximize(
+                init_points=0,
+                n_iter=1,
+            )
+        else:
+            if model_name=='deep4':
+                for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
                     exp()
+            else:
+                exp()
