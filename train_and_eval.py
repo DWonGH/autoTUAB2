@@ -23,7 +23,7 @@ from braindecode.preprocessing import (
     exponential_moving_standardize, preprocess, Preprocessor, scale)
 from braindecode.util import np_to_th
 from braindecode.datautil import load_concat_dataset
-from deep4_1 import Deep4Net_1
+# from deep4_1 import Deep4Net_1
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
 from vit import ViT

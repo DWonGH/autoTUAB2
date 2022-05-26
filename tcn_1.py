@@ -2,6 +2,9 @@
 #          Lukas Gemein <l.gemein@gmail.com>
 #
 # License: BSD-3
+#
+# Modifications by YZ?
+# TODO: Clarify the nature of any modifications above.
 
 from torch import nn
 from torch.nn import init
@@ -9,7 +12,7 @@ from torch.nn.utils import weight_norm
 
 from braindecode.models.modules import Ensure4d, Expression
 from braindecode.models.functions import squeeze_final_output
-import globalvar as gl
+#import globalvar as gl
 
 
 class TCN_1(nn.Module):
