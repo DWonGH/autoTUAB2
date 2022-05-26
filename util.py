@@ -277,7 +277,7 @@ def custom_crop(raw, tmin=0.0, tmax=None, include_tmax=True):
     raw.crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
 
-def split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size):
+def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state):
     if split_way == 'proportion':
         idx_train, idx_valid_test = train_test_split(np.arange(len(windows_ds.description['path'])),
                                                      random_state=random_state,

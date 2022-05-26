@@ -186,7 +186,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     print(windows_ds.description)
 
     # Split the data:
-    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state)
+    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle,
+                                                random_state)
 
     etl_time = time.time() - data_loading_start
 
@@ -210,8 +211,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
               channels)
         if shuffle and i>0:
             # Re-split the data to ensure each repetition uses a different split:
-            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
-                                                        random_state=random_state+i)
+            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size,
+                                                        shuffle, random_state=random_state+i)
 
         if model_name=='vit':
             # Avoid memory errors by forcing smaller batch size
