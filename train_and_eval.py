@@ -266,7 +266,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             elif model_name=='tidnet':
                 model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=dropout, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
             elif model_name=='tcn_1':
-                model=TCN_1(n_channels, n_classes, n_blocks=tcn_n_blocks, n_filters=tcn_n_filters, kernel_size=tcn_kernel_size, drop_prob=dropout, add_log_softmax=tcn_add_log_softmax,input_window_samples=window_len_samples,last_layer_type=tcn_last_layer_type)
+                model=TCN_1(n_channels, n_classes, n_blocks=tcn_n_blocks, n_filters=tcn_n_filters, kernel_size=tcn_kernel_size, drop_prob=tcn_dropout, add_log_softmax=tcn_add_log_softmax,input_window_samples=window_len_samples,last_layer_type=tcn_last_layer_type)
             elif model_name=='hybridnet':
                 model=HybridNet(n_channels,n_classes,window_len_samples)
             elif model_name == 'hybridnet_1':
