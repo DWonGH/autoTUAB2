@@ -36,10 +36,12 @@ import warnings
 warnings.filterwarnings("ignore")
 
 pd.set_option('display.max_columns', 10)
+
 # import globalvar as gl
 # gl._init()
 #
 # gl.set_value('val_a',0 )
+
 
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
@@ -53,7 +55,8 @@ with open(log_path,'a') as f:
      'batch_size','n_epochs','tmin','tmax','multiple','sec_to_cut','duration_recording_sec','max_abs_val',\
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
-     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording','acc_per_recording'])
+     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording',\
+     'acc_per_recording','mcc','mcc_per_recording'])
 
 # Iterate over data/preproc parameters
 for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
@@ -137,7 +140,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             preprocessors = [
                 Preprocessor('pick_types', eeg=True, meg=False, stim=False),# Keep EEG sensors
-                Preprocessor('pick_channels',ch_names = channels),
+                Preprocessor('pick_channels',ch_names = channels,ordered=True),
                 Preprocessor(fn='resample', sfreq=sampling_freq),
                 Preprocessor(custom_crop, tmin=sec_to_cut, tmax=duration_recording_sec+sec_to_cut, include_tmax=False,
                              apply_on_array=False),
@@ -298,7 +301,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 callbacks.append(('es',es))
             clf = EEGClassifier(
                 model,
-                criterion=torch.nn.NLLLoss,
+                criterion=torch.nn.NLLLoss(weight_function(train_set.get_metadata().target,device)),
                 optimizer=torch.optim.AdamW,
                 train_split=predefined_split(valid_set) if test_on_eval else None,  # using valid_set for validation
                 optimizer__lr=lr,
@@ -311,6 +314,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 callbacks=callbacks,
                 device=device,
             )
+
 
             # Prevent GPU memory fragmentation
             torch.cuda.empty_cache()
@@ -327,6 +331,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             # Extract loss and accuracy values for plotting from history object
             results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
             # print(clf.history)
+
             df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
                               index=clf.history[:, 'epoch'])
             # get percent of misclass for better visual comparison to loss
@@ -360,7 +365,11 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 plt.show()
             from sklearn.metrics import confusion_matrix
             from braindecode.visualization import plot_confusion_matrix
-
+            # windows_brainvision=load_brainvision_as_windows('D:\\phd\\sleep\\data\\Fastball')
+            # brainvision_pred=clf.predict(windows_brainvision)
+            # brainvision_true=windows_brainvision.get_metadata().target
+            # brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
+            # print('brainvision',brainvision_confusion_mat)
             # generate confusion matrices
             # print(test_set.description)
             y_true = test_set.get_metadata().target
@@ -391,32 +400,37 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             precision=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
             recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
             acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
+            mcc=MCC(confusion_mat)
             precision_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,0])
             recall_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1])
             acc_per_recording=(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,1])/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1]+confusion_mat_per_recording[1,1]+confusion_mat_per_recording[1,0])
+            mcc_per_recording=MCC(confusion_mat_per_recording)
             end=time.time()
             print('precision:',precision)
             print('recall:',recall)
             print('acc:',acc)
+            print('mcc:',mcc)
             print('precision_per_recording:', precision_per_recording)
             print('recall_per_recording:', recall_per_recording)
             print('acc_per_recording:', acc_per_recording)
+            print('mcc:',mcc_per_recording)
             print('etl_time:',etl_time)
             print('model_training_time:',model_training_time)
             his_len=len(df)
             with open(log_path, 'a') as f:
                 writer = csv.writer(f, delimiter=',', lineterminator='\n', )
+
                 for i in range(his_len-1):
                     writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
                 writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
-                 model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
-                 window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
-                 load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
-                 standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
-                 batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
-                 sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
-                 model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-                 channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording])
+             model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
+             window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
+             load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
+             standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
+             batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
+             sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
+             model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
+             channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
 
             # print(type(confusion_mat[0][0]))
             # # add class labels
@@ -443,6 +457,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                     windows_pred=np.exp(np.array(clf.predict_proba(windows_ds)[:,1]))
                     writer1.writerow(windows_pred)
                     writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+
+
             return acc
 
         if BO:
@@ -459,14 +475,11 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 init_points=0,
                 n_iter=1,
             )
+
         else:
             print(model_name)
             if model_name=='deep4':
                 for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
                     exp()
             else:
-                if model_name=='deep4':
-                    for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
-                        exp()
-                else:
-                    exp()
+                exp()
