@@ -55,7 +55,8 @@ with open(log_path,'a') as f:
      'batch_size','n_epochs','tmin','tmax','multiple','sec_to_cut','duration_recording_sec','max_abs_val',\
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
-     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording','acc_per_recording'])
+     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording',\
+     'acc_per_recording','mcc','mcc_per_recording'])
 
 # Iterate over data/preproc parameters
 for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
@@ -361,6 +362,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
                 plt.tight_layout()
                 plt.show()
+
             from sklearn.metrics import confusion_matrix
             from braindecode.visualization import plot_confusion_matrix
 
@@ -394,109 +396,20 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             precision=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
             recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
             acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
+            mcc=MCC(confusion_mat)
             precision_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,0])
             recall_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1])
             acc_per_recording=(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,1])/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1]+confusion_mat_per_recording[1,1]+confusion_mat_per_recording[1,0])
+            mcc_per_recording=MCC(confusion_mat_per_recording)
             end=time.time()
             print('precision:',precision)
             print('recall:',recall)
             print('acc:',acc)
+            print('mcc:',mcc)
             print('precision_per_recording:', precision_per_recording)
             print('recall_per_recording:', recall_per_recording)
             print('acc_per_recording:', acc_per_recording)
-            print('etl_time:',etl_time)
-            print('model_training_time:',model_training_time)
-            his_len=len(df)
-
-            # Prevent GPU memory fragmentation
-            torch.cuda.empty_cache()
-
-            # Model training for a specified number of epochs. `y` is None as it is already supplied
-            # in the dataset.
-            clf.fit(train_set, y=None, epochs=n_epochs)
-            # clf.save_params('./params.pt')
-            model_training_time = time.time() - model_training_start
-
-            import matplotlib.pyplot as plt
-            from matplotlib.lines import Line2D
-
-            # Extract loss and accuracy values for plotting from history object
-            results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
-            # print(clf.history)
-            df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
-                              index=clf.history[:, 'epoch'])
-            # get percent of misclass for better visual comparison to loss
-            df = df.assign(train_misclass=100 - 100 * df.train_accuracy,
-                           valid_misclass=100 - 100 * df.valid_accuracy)
-            print(df)
-            if plot_result:
-                plt.style.use('seaborn')
-                fig, ax1 = plt.subplots(figsize=(8, 3))
-                df.loc[:, ['train_loss', 'valid_loss']].plot(
-                    ax=ax1, style=['-', ':'], marker='o', color='tab:blue', legend=False, fontsize=14)
-
-                ax1.tick_params(axis='y', labelcolor='tab:blue', labelsize=14)
-                ax1.set_ylabel("Loss", color='tab:blue', fontsize=14)
-
-                ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-                df.loc[:, ['train_misclass', 'valid_misclass']].plot(
-                    ax=ax2, style=['-', ':'], marker='o', color='tab:red', legend=False)
-                ax2.tick_params(axis='y', labelcolor='tab:red', labelsize=14)
-                ax2.set_ylabel("Misclassification Rate [%]", color='tab:red', fontsize=14)
-                ax2.set_ylim(ax2.get_ylim()[0], 85)  # make some room for legend
-                ax1.set_xlabel("Epoch", fontsize=14)
-
-                # where some data has already been plotted to ax
-                handles = []
-                handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle='-', label='Train'))
-                handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle=':', label='Valid'))
-                plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
-                plt.tight_layout()
-                plt.show()
-            from sklearn.metrics import confusion_matrix
-            from braindecode.visualization import plot_confusion_matrix
-
-            # generate confusion matrices
-            # print(test_set.description)
-            y_true = test_set.get_metadata().target
-            # print(y_true)
-            starts=find_all_zero(test_set.get_metadata()['i_window_in_trial'].tolist())
-            # print(starts)
-            # print('y_true:',y_true)
-            # print(len(y_true))
-            y_pred = clf.predict(test_set)
-            y_pred_proba=clf.predict_proba(test_set)
-
-
-
-
-            # print(y_pred)
-            # print('y_pred:',y_pred)
-            # print(len(y_pred))
-            confusion_mat_per_recording=con_mat(starts,y_true,y_pred)
-            confusion_mat_per_recording_proba=con_mat(starts,y_true,y_pred,True,y_pred_proba)
-            print(confusion_mat_per_recording)
-            print(confusion_mat_per_recording_proba)
-
-
-            # generating confusion matrix
-            confusion_mat = confusion_matrix(y_true, y_pred)
-            print(confusion_mat)
-            # print(type(confusion_mat))
-            precision=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
-            recall=confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[0,1])
-            acc=(confusion_mat[0,0]+confusion_mat[1,1])/(confusion_mat[0,0]+confusion_mat[0,1]+confusion_mat[1,1]+confusion_mat[1,0])
-            precision_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,0])
-            recall_per_recording=confusion_mat_per_recording[0,0]/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1])
-            acc_per_recording=(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[1,1])/(confusion_mat_per_recording[0,0]+confusion_mat_per_recording[0,1]+confusion_mat_per_recording[1,1]+confusion_mat_per_recording[1,0])
-            end=time.time()
-            print('precision:',precision)
-            print('recall:',recall)
-            print('acc:',acc)
-            print('precision_per_recording:', precision_per_recording)
-            print('recall_per_recording:', recall_per_recording)
-            print('acc_per_recording:', acc_per_recording)
+            print('mcc:',mcc_per_recording)
             print('etl_time:',etl_time)
             print('model_training_time:',model_training_time)
             his_len=len(df)
@@ -513,7 +426,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
              batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
              sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
              model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-             channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording])
+             channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
 
             # print(type(confusion_mat[0][0]))
             # # add class labels

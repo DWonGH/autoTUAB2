@@ -1,13 +1,4 @@
 
-
-
-log_path="result.csv"
-plot_result=True
-BO=False
-earlystopping=True
-train_whole_dataset_again=True
-
-
 MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
 
 

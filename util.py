@@ -7,6 +7,16 @@ import glob
 import re
 from sklearn.model_selection import train_test_split
 
+def MCC(con_matrix):
+    sum1=con_matrix[0,0]+con_matrix[0,1]
+    sum2 = con_matrix[0, 1] + con_matrix[1, 1]
+    sum3 = con_matrix[1, 1] + con_matrix[1, 0]
+    sum4 = con_matrix[1, 0] + con_matrix[0, 0]
+    if sum1==0 or sum2==0 or sum3==0 or sum4==0:
+        return 0
+    else:
+        return (con_matrix[0,0]*con_matrix[1,1]-con_matrix[1,0]*con_matrix[0,1])/ (sum1+sum2+sum3+sum4)
+
 def get_full_filelist(base_dir='.', target_ext='') -> list:
     fname_list = []
 
@@ -43,17 +53,21 @@ def load_brainvision_as_windows(data_folder):
     y = [1 for raw in parts]
     sfreq = parts[0].info["sfreq"]
     ch_names = parts[0].info["ch_names"]
-    # for i in ch_names:
-    #     print(i)
-    # channels = [
-    #     'A1', 'A2',
-    #     'FP1', 'FP2', 'F3', 'F4', 'C3',
-    #     'C4', 'P3', 'P4', 'O1', 'O2',
-    #     'F7', 'F8', 'T3', 'T4', 'T5',
-    #     'T6', 'FZ', 'CZ', 'PZ']
-    # res = [v for v in ch_names if v in channels]
-    # print(res)
-    # print(len(res))
+    ch_names=[v.upper() for v in ch_names]
+    for i in ch_names:
+        print(i)
+    channels = [
+        'A1', 'A2',
+        'FP1', 'FP2', 'F3', 'F4', 'C3',
+        'C4', 'P3', 'P4', 'O1', 'O2',
+        'F7', 'F8', 'T3', 'T4', 'T5',
+        'T6', 'FZ', 'CZ', 'PZ']
+    res = [v for v in ch_names if v in channels]
+    print(res)
+    print(len(res))
+    miss=[v for v in channels if v not in ch_names ]
+    print(miss)
+    print(len(miss))
     windows_dataset = create_from_X_y(
         X, y, drop_last_window=False, sfreq=sfreq, ch_names=ch_names,
         window_stride_samples=6000,
