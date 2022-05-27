@@ -5,7 +5,16 @@ import csv
 import numpy as np
 import glob
 import re
+import torch
 from sklearn.model_selection import train_test_split
+
+
+def weight_function(targets,device='cpu'):
+    # targets = targets.cpu()
+    weights = max(np.count_nonzero(targets == 0), np.count_nonzero(targets == 1)) / \
+              torch.tensor([np.count_nonzero(targets == 0), np.count_nonzero(targets == 1)],
+                        dtype=torch.float,device=device)
+    return weights
 
 def MCC(con_matrix):
     sum1=con_matrix[0,0]+con_matrix[0,1]

@@ -300,7 +300,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 callbacks.append(('es',es))
             clf = EEGClassifier(
                 model,
-                criterion=torch.nn.NLLLoss,
+                criterion=torch.nn.NLLLoss(weight_function(train_set.get_metadata().target,device)),
                 optimizer=torch.optim.AdamW,
                 train_split=predefined_split(valid_set) if test_on_eval else None,  # using valid_set for validation
                 optimizer__lr=lr,
