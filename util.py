@@ -52,36 +52,55 @@ def get_full_filelist(base_dir='.', target_ext='') -> list:
 
     return fname_list
 def load_brainvision_as_windows(data_folder):
-    paths = get_full_filelist(data_folder,'.vhdr')
+    paths = get_full_filelist(data_folder, '.vhdr')
     print(paths)
 
-    parts = [mne.io.read_raw_brainvision(path, preload=True, verbose=False)
+    def channel_processing(raw):
+        for c in raw.ch_names:  # they need to have REF_ prefix to be recognised
+            raw.rename_channels({c: "EEG " + c.upper() + '-REF'})
+        raw.rename_channels({'EEG T7-REF': 'EEG T3-REF'})
+        raw.rename_channels({'EEG T8-REF': 'EEG T4-REF'})
+        raw.rename_channels({'EEG P7-REF': 'EEG T5-REF'})
+        raw.rename_channels({'EEG P8-REF': 'EEG T6-REF'})
+        raw.reorder_channels([
+            'EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF',
+            'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF',
+            'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF',
+            'EEG T6-REF', 'EEG FZ-REF', 'EEG PZ-REF', 'EEG FC1-REF', 'EEG FC2-REF', 'EEG CP1-REF', 'EEG CP2-REF'])
+        return raw
+
+    parts = [channel_processing(mne.io.read_raw_brainvision(path, preload=True, verbose=False))
              for path in paths]
 
-    X = [raw.get_data() for raw in parts]
+    def generate_cz(raw_data):
+        res = np.row_stack((raw_data[:18], (raw_data[18] + raw_data[19] + raw_data[20] + raw_data[21]) / 4))
+        # print(res.shape)
+        return res
+
+    X = [generate_cz(raw.get_data()) for raw in parts]
+    # print(type(X[0]))
     y = [1 for raw in parts]
     sfreq = parts[0].info["sfreq"]
     ch_names = parts[0].info["ch_names"]
-    ch_names=[v.upper() for v in ch_names]
-    for i in ch_names:
-        print(i)
+    ch_names = [v.upper() for v in ch_names]
+    print(ch_names)
+    # channels = [
+    #     'A1', 'A2',
+    #     'FP1', 'FP2', 'F3', 'F4', 'C3',
+    #     'C4', 'P3', 'P4', 'O1', 'O2',
+    #     'F7', 'F8', 'T3', 'T4', 'T5',
+    #     'T6', 'FZ', 'CZ', 'PZ']
     channels = [
-        'A1', 'A2',
-        'FP1', 'FP2', 'F3', 'F4', 'C3',
-        'C4', 'P3', 'P4', 'O1', 'O2',
-        'F7', 'F8', 'T3', 'T4', 'T5',
-        'T6', 'FZ', 'CZ', 'PZ']
-    res = [v for v in ch_names if v in channels]
-    print(res)
-    print(len(res))
-    miss=[v for v in channels if v not in ch_names ]
-    print(miss)
-    print(len(miss))
+        'EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF',
+        'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF',
+        'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF',
+        'EEG T6-REF', 'EEG FZ-REF', 'EEG PZ-REF', 'EEG CZ-REF', ]
     windows_dataset = create_from_X_y(
-        X, y, drop_last_window=False, sfreq=sfreq, ch_names=ch_names,
+        X, y, drop_last_window=False, sfreq=sfreq, ch_names=channels,
         window_stride_samples=6000,
         window_size_samples=6000,
     )
+    # print(windows_dataset.description)
     return windows_dataset
 def find_all_zero(input):
     res=[]

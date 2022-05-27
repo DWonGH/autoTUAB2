@@ -140,7 +140,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             preprocessors = [
                 Preprocessor('pick_types', eeg=True, meg=False, stim=False),# Keep EEG sensors
-                Preprocessor('pick_channels',ch_names = channels),
+                Preprocessor('pick_channels',ch_names = channels,ordered=True),
                 Preprocessor(fn='resample', sfreq=sampling_freq),
                 Preprocessor(custom_crop, tmin=sec_to_cut, tmax=duration_recording_sec+sec_to_cut, include_tmax=False,
                              apply_on_array=False),
@@ -365,7 +365,11 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             from sklearn.metrics import confusion_matrix
             from braindecode.visualization import plot_confusion_matrix
-
+            windows_brainvision=load_brainvision_as_windows('D:\\phd\\sleep\\data\\Fastball')
+            brainvision_pred=clf.predict(windows_brainvision)
+            brainvision_true=windows_brainvision.get_metadata().target
+            brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
+            print('brainvision',brainvision_confusion_mat)
             # generate confusion matrices
             # print(test_set.description)
             y_true = test_set.get_metadata().target
