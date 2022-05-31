@@ -24,7 +24,7 @@ def MCC(con_matrix):
     if sum1==0 or sum2==0 or sum3==0 or sum4==0:
         return 0
     else:
-        return (con_matrix[0,0]*con_matrix[1,1]-con_matrix[1,0]*con_matrix[0,1])/ (sum1+sum2+sum3+sum4)
+        return (con_matrix[0,0]*con_matrix[1,1]-con_matrix[1,0]*con_matrix[0,1])/ ((sum1*sum2*sum3*sum4)**0.5)
 
 def get_full_filelist(base_dir='.', target_ext='') -> list:
     fname_list = []
