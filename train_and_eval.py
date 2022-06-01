@@ -33,7 +33,7 @@ from train_and_eval_config import *
 from batch_test_hyperparameters import *
 
 import warnings
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("once")
 
 pd.set_option('display.max_columns', 10)
 
@@ -122,20 +122,24 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 tueg_ids=list(range(n_tueg)) if n_tueg else None
                 ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
                     preload=preload)
-                print(ds_tueg.description)
+                ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
+
+                print('tueg:',ds_tueg.description)
 
             ds=BaseConcatDataset(([i for i in ds_tuab.datasets] if tuab else [])+([j for j in ds_tueg.datasets] if tueg else []))
-            print(ds.description)
+            print('concate:',ds.description)
             ds=select_by_duration(ds,tmin,tmax)
+            print('select_duration:',ds.description)
 
             for i in range(len(relabel_label)):
                 ds.set_description(relabel(ds,relabel_label[i],relabel_dataset[i]),overwrite=True)
-            print(ds.description)
+            print('labeled:',ds.description)
 
             ds=select_labeled(ds)
-            print(ds.description)
+            print('select_labeled:',ds.description)
 
             ds=select_by_channel(ds,channels)
+            print('select_channel:',ds.description)
             # check_inf(ds)
 
             preprocessors = [
@@ -190,11 +194,10 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
         if saved_windows_data:
             windows_ds.save(saved_windows_path,True)
 
-    print(windows_ds.description)
+    # print(windows_ds.description)
 
     # Split the data:
-    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle,
-                                                random_state)
+    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size)
 
     etl_time = time.time() - data_loading_start
 
@@ -218,8 +221,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
               channels)
         if shuffle and i>0:
             # Re-split the data to ensure each repetition uses a different split:
-            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size,
-                                                        shuffle, random_state=random_state+i)
+            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
+                                                        random_state+i,test_size,valid_size)
 
         if model_name=='vit':
             # Avoid memory errors by forcing smaller batch size
@@ -269,7 +272,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             elif model_name=='tidnet':
                 model=TIDNet(n_channels, n_classes, window_len_samples, s_growth=24, t_filters=32, drop_prob=dropout, pooling=15, temp_layers=2, spat_layers=2, temp_span=0.05, bottleneck=3, summary=- 1)
             elif model_name=='tcn_1':
-                model=TCN_1(n_channels, n_classes, n_blocks=tcn_n_blocks, n_filters=tcn_n_filters, kernel_size=tcn_kernel_size, drop_prob=tcn_dropout, add_log_softmax=tcn_add_log_softmax,input_window_samples=window_len_samples,last_layer_type=tcn_last_layer_type)
+                model=TCN_1(n_channels, n_classes, n_blocks=tcn_n_blocks, n_filters=tcn_n_filters, kernel_size=tcn_kernel_size, drop_prob=dropout, add_log_softmax=tcn_add_log_softmax,input_window_samples=window_len_samples,last_layer_type=tcn_last_layer_type)
             elif model_name=='hybridnet':
                 model=HybridNet(n_channels,n_classes,window_len_samples)
             elif model_name == 'hybridnet_1':
@@ -363,13 +366,14 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
                 plt.tight_layout()
                 plt.show()
+
             from sklearn.metrics import confusion_matrix
             from braindecode.visualization import plot_confusion_matrix
-            # windows_brainvision=load_brainvision_as_windows('D:\\phd\\sleep\\data\\Fastball')
-            # brainvision_pred=clf.predict(windows_brainvision)
-            # brainvision_true=windows_brainvision.get_metadata().target
-            # brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
-            # print('brainvision',brainvision_confusion_mat)
+            windows_brainvision=load_brainvision_as_windows('D:\\phd\\sleep\\data\\Fastball')
+            brainvision_pred=clf.predict(windows_brainvision)
+            brainvision_true=windows_brainvision.get_metadata().target
+            brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
+            print('brainvision',brainvision_confusion_mat)
             # generate confusion matrices
             # print(test_set.description)
             y_true = test_set.get_metadata().target
