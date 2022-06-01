@@ -8,6 +8,23 @@ import re
 import torch
 from sklearn.model_selection import train_test_split
 
+def remove_tuab_from_dataset(ds,tuab_loc):
+    tuab_list=get_full_filelist(tuab_loc,'.edf')
+    for i in range(len(tuab_list)):
+        tuab_list[i]= tuab_list[i].split("\\")[-1]
+    print(tuab_list)
+    split_ids = []
+    for d_i, d in enumerate(ds.description['path']):
+        file_name=d.split("\\")[-1]
+        if not file_name in tuab_list:
+            # print(file_name)
+            split_ids.append(d_i)
+        else:
+            print(file_name)
+    print(split_ids)
+    splits = ds.split(split_ids)
+    split = splits['0']
+    return split
 
 def weight_function(targets,device='cpu'):
     # targets = targets.cpu()
@@ -238,13 +255,14 @@ def read_all_file_names(path, extension, key="time"):
 
     else:
         return file_paths
+
 def relabel(dataset,label_path,dataset_folder):
     des=dataset.description
     des_path=list(des['path'])
     des_file=[]
     for i in des_path:
         des_file.append(os.path.basename(i))
-    # print(des_file)
+    print('des_file',des_file)
     all_labelled_TUEG_file_names = []
     TUEG_labels = []
     with open(label_path, newline='') as csvfile:
@@ -265,14 +283,18 @@ def relabel(dataset,label_path,dataset_folder):
             # if label_from_ML==label_from_rules and (p_ab>=0.99 or p_ab<=0.01):
             if (p_ab >= 0.99 or p_ab <= 0.01):
                 label = label_from_ML
+                # print('pass')
             else:
+                # print('p_ab',p_ab)
                 continue
-            full_folder = os.path.join(dataset_folder, row[0])
+
+            full_folder = os.path.join(dataset_folder, row[0][9:])
+            # print(full_folder)
             this_file_names = read_all_file_names(full_folder, '.edf', key='time')
             # print(this_file_names)
             [all_labelled_TUEG_file_names.append(ff) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
             [TUEG_labels.append(label) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
-    # print(all_labelled_TUEG_file_names)
+    print(all_labelled_TUEG_file_names)
     # print(list(des))
     if 'pathological' not in list(des):
         des['pathological']=[2]*len(des['age'])
@@ -346,11 +368,11 @@ def split_data(windows_ds, split_way, train_size, shuffle, random_state,test_siz
         for i in range(len(train)):
             if train[i] != True and train[i] != False:
                 # print(train[i])
-                if 'train' in path[i]:
-                    # print(path[i])
-                    des['train'] = True
-                elif 'eval' in path[i]:
-                    des['train'] = False
+                if 'eval' in path[i]:
+                    print(path[i])
+                    des['train'] [i]= False
+                else:
+                    des['train'][i] = True
         windows_ds.set_description(des, overwrite=True)
         # print(windows_ds.description)
         splits = windows_ds.split('train')

@@ -116,26 +116,30 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             ds_tuab= TUHAbnormal(
                 tuab_path, recording_ids=tuab_ids,target_name='pathological',
                 preload=preload)
-            print(ds_tuab.description)
+            print('tuab:',ds_tuab.description)
 
             if tueg:
                 tueg_ids=list(range(n_tueg)) if n_tueg else None
                 ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
                     preload=preload)
-                print(ds_tueg.description)
+                ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
+
+                print('tueg:',ds_tueg.description)
 
             ds=BaseConcatDataset(([i for i in ds_tuab.datasets] if tuab else [])+([j for j in ds_tueg.datasets] if tueg else []))
-            print(ds.description)
+            print('concate:',ds.description)
             ds=select_by_duration(ds,tmin,tmax)
+            print('select_duration:',ds.description)
 
             for i in range(len(relabel_label)):
                 ds.set_description(relabel(ds,relabel_label[i],relabel_dataset[i]),overwrite=True)
-            print(ds.description)
+            print('labeled:',ds.description)
 
             ds=select_labeled(ds)
-            print(ds.description)
+            print('select_labeled:',ds.description)
 
             ds=select_by_channel(ds,channels)
+            print('select_channel:',ds.description)
             # check_inf(ds)
 
             preprocessors = [
@@ -190,11 +194,11 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
         if saved_windows_data:
             windows_ds.save(saved_windows_path,True)
 
-    print(windows_ds.description)
+    # print(windows_ds.description)
 
     # Split the data:
     train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size)
-
+    # print('trainset',train_set.description)
     etl_time = time.time() - data_loading_start
 
     n_channels = windows_ds[0][0].shape[0]
