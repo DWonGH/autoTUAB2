@@ -369,11 +369,12 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             from sklearn.metrics import confusion_matrix
             from braindecode.visualization import plot_confusion_matrix
-            windows_brainvision=load_brainvision_as_windows('D:\\phd\\sleep\\data\\Fastball')
-            brainvision_pred=clf.predict(windows_brainvision)
-            brainvision_true=windows_brainvision.get_metadata().target
-            brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
-            print('brainvision',brainvision_confusion_mat)
+            if test_on_brainvision:
+                windows_brainvision=load_brainvision_as_windows('D:\\phd\\sleep\\data\\Fastball')
+                brainvision_pred=clf.predict(windows_brainvision)
+                brainvision_true=windows_brainvision.get_metadata().target
+                brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
+                print('brainvision',brainvision_confusion_mat)
             # generate confusion matrices
             # print(test_set.description)
             y_true = test_set.get_metadata().target
@@ -457,10 +458,18 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 with open('./training_detail.csv', 'a') as f1:
                     writer1 = csv.writer(f1, delimiter=',', lineterminator='\n', )
                     windows_true = windows_ds.get_metadata().target
-                    writer1.writerow(windows_true)
+                    len_true=len(windows_true)
+                    for i in range(len_true//16384):
+                        writer1.writerow(windows_true[i*16384:(i+1)*16384])
+                    writer1.writerow(windows_true[(len_true)//16384 * 16384:])
+                    # writer1.writerow(windows_true)
                     windows_pred=np.exp(np.array(clf.predict_proba(windows_ds)[:,1]))
-                    writer1.writerow(windows_pred)
+                    for i in range(len_true//16384):
+                        writer1.writerow(windows_pred[i*16384:(i+1)*16384])
+                    writer1.writerow(windows_pred[(len_true)//16384 * 16384:])
+                    # writer1.writerow(windows_pred)
                     writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+                    # writer1.writerow(windows_ds.get_metadata()['i_window_in_trial'].tolist())
 
 
             return acc
@@ -481,9 +490,9 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             )
 
         else:
-            print(model_name)
-            if model_name=='deep4':
-                for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
-                    exp()
-            else:
+            # print(model_name)
+            # if model_name=='deep4':
+            #     for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
+            #         exp()
+            # else:
                 exp()
