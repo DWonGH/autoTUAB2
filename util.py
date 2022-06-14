@@ -231,12 +231,14 @@ def natural_key(file_name):
 
 def time_key(file_name):
     """ provides a time-based sorting key """
-    splits = file_name.split('/')
-    [date] = re.findall(r'(\d{4}_\d{2}_\d{2})', splits[-1])
+    splits = file_name.split(os.path.sep)
+    [date] = re.findall(r'(\d{4}_\d{2}_\d{2})', splits[-2])
     date_id = [int(token) for token in date.split('_')]
-    recording_id = natural_key(splits[-1])
-    session_id = session_key(splits[-2])
-    return date_id + session_id + recording_id
+    # recording_id = natural_key(splits[-1])
+    # session_id = session_key(splits[-2])
+    [recording_id] = re.findall(r't(\d{3})', splits[-1])
+    [session_id] = re.findall(r's(\d{3})', splits[-1])
+    return date_id + [session_id] + [recording_id]
 
 def read_all_file_names(path, extension, key="time"):
     """ read all files with specified extension from given path

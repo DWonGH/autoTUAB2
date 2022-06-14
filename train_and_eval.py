@@ -100,7 +100,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             path=saved_windows_path,
             preload=False,
             ids_to_load=load_ids,
-            target_name='pathological',
+            target_name='pathological'
         )
     else:
         if load_saved_data:
