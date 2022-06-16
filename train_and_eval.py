@@ -376,10 +376,12 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 brainvision_confusion_mat = confusion_matrix(brainvision_true, brainvision_pred)
                 print('brainvision',brainvision_confusion_mat)
             # generate confusion matrices
-            # print(test_set.description)
+            print('test:',test_set.description)
             y_true = test_set.get_metadata().target
             # print(y_true)
             starts=find_all_zero(test_set.get_metadata()['i_window_in_trial'].tolist())
+
+
             # print(starts)
             # print('y_true:',y_true)
             # print(len(y_true))
@@ -470,6 +472,20 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                     # writer1.writerow(windows_pred)
                     writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
                     # writer1.writerow(windows_ds.get_metadata()['i_window_in_trial'].tolist())
+                    paths = np.array(windows_ds.description.loc[:, ['path']]).tolist()
+
+                    # print(paths)
+                    # print(type(paths))
+                    patients = []
+                    sessions = []
+                    for i in range(len(paths)):
+                        splits = paths[i][0].split('\\')
+                        patients.append(splits[-3])
+                        sessions.append(splits[-2])
+                    print('patients', patients)
+                    print('sessions', sessions)
+                    writer1.writerow(patients)
+                    writer1.writerow(sessions)
 
 
             return acc

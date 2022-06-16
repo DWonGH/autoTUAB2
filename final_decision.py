@@ -13,25 +13,27 @@ from sklearn.model_selection import train_test_split
 
 n_repetition=5
 length=10
-use_his=True
-adap_pool=True
+use_his=False
+adap_pool=False
 use_hybrid=True
+threshold=0.5
+total=800
 
 # with open('./training_detail.csv','r') as f:
 filename='./training_detail_1.csv'
-total = sum(1 for line in open(filename))
-print('The total lines is ',total)
+# total = sum(1 for line in open(filename))
+# print('The total lines is ',total)
 
 # with open('./training_detail.csv', newline='') as csvfile:
 #     results = csv.reader(csvfile, delimiter=',')
 #     print(results[1])
 results= pd.read_csv(filename)
-# print(results)
+print(results)
 # print(results.loc[2,'16000'])
 labels=[]
 valid_lens=[]
 data=[]
-pd_valid_lens=results.loc[2,:].tolist()[:801]
+pd_valid_lens=results.loc[2,:].tolist()[:total+1]
 for i in range(len(pd_valid_lens)):
     pd_valid_lens[i]=int(pd_valid_lens[i])
 pd_data=results.loc[1,:].tolist()
@@ -51,7 +53,10 @@ def creat_his(raw,length=10):
     return his
 
 
-for i in range(800):
+for i in range(total):
+    # if (pd_valid_lens[i+1]-pd_valid_lens[i])!=20:
+    #     total=total-1
+    #     continue
     valid_lens.append(pd_valid_lens[i+1]-pd_valid_lens[i])
     labels.append(pd_labels[pd_valid_lens[i]])
     if use_his:
@@ -62,6 +67,7 @@ for i in range(800):
     else:
         data.append(pd_data[pd_valid_lens[i]:pd_valid_lens[i+1]]+[0]*(20-valid_lens[-1]))
 
+print('total',total)
 # print(labels)
 # print(valid_lens)
 # print(data)
@@ -84,8 +90,9 @@ dataset = MyDataset(data,labels,valid_lens)
 ave_test_acc=0
 ave_ori_acc=0
 ave_argmax_acc=0
+ave_mean_acc=0
 for n_time in range(n_repetition):
-    idx_train, idx_test = train_test_split(np.arange(800),
+    idx_train, idx_test = train_test_split(np.arange(total),
                                                  random_state=n_time,
                                                  train_size=0.8,
                                                  shuffle=True)
@@ -178,6 +185,8 @@ for n_time in range(n_repetition):
     right_ori = 0
     right_argmax=0
     all_argmax=0
+    right_mean=0
+    all_mean=0
     data_loader = DataLoader(test_set,batch_size=1,shuffle=False,num_workers=0)
     for batch in data_loader:
         X, Y, valid_len = [x.to(device) for x in batch]
@@ -188,6 +197,12 @@ for n_time in range(n_repetition):
             if i>10:
                 right_argmax+=1
             all_argmax+=1
+        mean_res=torch.mean(X,dim=-1)
+        for i,j in zip(mean_res,Y):
+            if (i>0.5)==j:
+                right_mean+=1
+            all_mean+=1
+
         Y_hat = model(X, valid_len)
         hat_label = torch.argmax(Y_hat, -1)
         res = sum(hat_label == Y)
@@ -196,19 +211,24 @@ for n_time in range(n_repetition):
     print('test_acc', right / all)
     print('ori_acc',right_ori/all_ori)
     print('argmax_acc',right_argmax/all_argmax)
+    print('mean_acc',right_mean/all_mean)
     ave_test_acc+=right / all
     ave_ori_acc+=right_ori/all_ori
     ave_argmax_acc+=right_argmax/all_argmax
+    ave_mean_acc+=right_mean/all_mean
+
 ave_test_acc=float(ave_test_acc/n_repetition)
 ave_ori_acc=float(ave_ori_acc/n_repetition)
 ave_argmax_acc=float(ave_argmax_acc/n_repetition)
+ave_mean_acc=float(ave_mean_acc/n_repetition)
 print('ave_test_acc',ave_test_acc)
 print('ave_ori_acc',ave_ori_acc)
 print('ave_argmax_acc',ave_argmax_acc)
+print('ave_mean_acc',ave_mean_acc)
 with open('./decision_result.csv','a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
-    writer.writerow(['use_hybrid','n_repetition','length','use_his','adap_pool','ave_test_acc','ave_ori_acc','ave_argmax_acc'])
-    writer.writerow([use_hybrid,n_repetition,length,use_his,adap_pool,ave_test_acc,ave_ori_acc,ave_argmax_acc])
+    writer.writerow(['use_hybrid','n_repetition','length','use_his','adap_pool','ave_test_acc','ave_ori_acc','ave_argmax_acc','ave_mean_acc'])
+    writer.writerow([use_hybrid,n_repetition,length,use_his,adap_pool,ave_test_acc,ave_ori_acc,ave_argmax_acc,ave_mean_acc])
 
 
 
