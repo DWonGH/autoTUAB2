@@ -77,11 +77,12 @@ channels=[
 # model specific hyperparameters
 
 # tcn
-tcn_kernel_size=11
-tcn_n_blocks=8
-tcn_n_filters=2
-tcn_add_log_softmax=True
-tcn_last_layer_type='max_pool'
+tcn_kernel_size = 11
+tcn_n_blocks = 5 # 8 from Bai. 5 from Gemein et al.
+tcn_n_filters = 55 # Was 2. Gemein et al said they used 55 'channels' for each block.
+tcn_add_log_softmax = True
+tcn_last_layer_type = 'max_pool'
+tcn_dropout = 0.05270154233150525
 
 deep4_n_filters_time=25
 deep4_n_filters_spat=25
@@ -112,8 +113,8 @@ shallow_batch_norm=True
 shallow_batch_norm_alpha=0.1
 
 vit_patch_size = 10
-vit_dim = 128
+vit_dim = 64
 vit_depth = 6
 vit_heads = 16
-vit_mlp_dim = 128
+vit_mlp_dim = 64
 vit_emb_dropout = 0.1

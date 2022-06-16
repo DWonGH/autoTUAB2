@@ -23,7 +23,7 @@ from braindecode.preprocessing import (
     exponential_moving_standardize, preprocess, Preprocessor, scale)
 from braindecode.util import np_to_th
 from braindecode.datautil import load_concat_dataset
-from deep4_1 import Deep4Net_1
+# from deep4_1 import Deep4Net_1
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
 from vit import ViT
@@ -116,7 +116,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             ds_tuab= TUHAbnormal(
                 tuab_path, recording_ids=tuab_ids,target_name='pathological',
                 preload=preload)
-            print('tuab:',ds_tuab.description)
+            print(ds_tuab.description)
 
             if tueg:
                 tueg_ids=list(range(n_tueg)) if n_tueg else None
@@ -198,7 +198,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
     # Split the data:
     train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size)
-    # print('trainset',train_set.description)
+
     etl_time = time.time() - data_loading_start
 
     n_channels = windows_ds[0][0].shape[0]
