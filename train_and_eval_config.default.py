@@ -74,6 +74,9 @@ channels=[
             'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF',
             'EEG T6-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF']
 
+test_on_brainvision = False
+brainvision_path = 'D:\\phd\\sleep\\data\\Fastball'
+
 # model specific hyperparameters
 
 # tcn
