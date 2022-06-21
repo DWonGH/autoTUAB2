@@ -197,7 +197,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     # print(windows_ds.description)
 
     # Split the data:
-    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size)
+    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state)
 
     etl_time = time.time() - data_loading_start
 
