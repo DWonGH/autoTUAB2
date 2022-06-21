@@ -222,8 +222,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
               channels)
         if shuffle and i>0:
             # Re-split the data to ensure each repetition uses a different split:
-            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
-                                                        random_state+i,test_size,valid_size)
+            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size,
+                                                        shuffle, random_state+i)
 
         if model_name=='vit':
             # Avoid memory errors by forcing smaller batch size
