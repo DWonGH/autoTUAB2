@@ -122,7 +122,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 tueg_ids=list(range(n_tueg)) if n_tueg else None
                 ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
                     preload=preload)
-                ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
+                if tuab:
+                    ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
 
                 print('tueg:',ds_tueg.description)
 

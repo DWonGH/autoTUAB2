@@ -8,7 +8,7 @@ import re
 import torch
 from sklearn.model_selection import train_test_split
 
-def remove_tuab_from_dataset(ds,tuab_loc):
+def remove_tuab_from_dataset(ds, tuab_loc):
     tuab_list=get_full_filelist(tuab_loc,'.edf')
     for i in range(len(tuab_list)):
         tuab_list[i]= tuab_list[i].split("\\")[-1]
