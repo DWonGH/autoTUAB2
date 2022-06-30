@@ -197,7 +197,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     # print(windows_ds.description)
 
     # Split the data:
-    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle, random_state,test_size,valid_size)
+    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size,valid_size,test_size ,shuffle, random_state)
 
     etl_time = time.time() - data_loading_start
 
@@ -427,8 +427,9 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             with open(log_path, 'a') as f:
                 writer = csv.writer(f, delimiter=',', lineterminator='\n', )
 
-                for i in range(his_len-1):
-                    writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
+                for i2 in range(his_len-1):
+                    writer.writerow([df.loc[i2+1][0],df.loc[i2+1][1],df.loc[i2+1][2],df.loc[i2+1][3]])
+                global i
                 writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
              model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
              window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
