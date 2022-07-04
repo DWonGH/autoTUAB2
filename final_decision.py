@@ -15,36 +15,58 @@ n_repetition=5
 length=10
 use_his=False
 adap_pool=False
-use_hybrid=True
+use_hybrid=False
 threshold=0.5
-total=800
+total=10000
 
 # with open('./training_detail.csv','r') as f:
-filename='./training_detail_1.csv'
+filename='./training_detail_tcn1_TUEG.csv'
 # total = sum(1 for line in open(filename))
 # print('The total lines is ',total)
-
-# with open('./training_detail.csv', newline='') as csvfile:
-#     results = csv.reader(csvfile, delimiter=',')
-#     print(results[1])
-results= pd.read_csv(filename)
-print(results)
+pd_labels=[]
+pd_valid_lens=[]
+pd_data=[]
+with open(filename, newline='') as csvfile:
+    results = csv.reader(csvfile, delimiter=',')
+    for i, row in enumerate(results):
+        if i >=0 and i<16:
+            pd_labels+=row
+        elif i>15 and i<32:
+            pd_data+=row
+        elif i==32:
+            pd_valid_lens=row
+for i in range(len(pd_valid_lens)):
+    pd_valid_lens[i]=int(pd_valid_lens[i])
+for i in range(len(pd_data)):
+    pd_data[i] = float(pd_data[i])
+true_num=0
+for i in range(len(pd_labels)):
+    if pd_labels[i]=='True':
+        pd_labels[i]=1
+        true_num+=1
+    else:
+        pd_labels[i] = 0
+print(len(pd_labels))
+print(sum(pd_labels))
+print('true_ratio:',float(true_num/len(pd_labels)))
+# results= pd.read_csv(filename)
+# print(results)
 # print(results.loc[2,'16000'])
 labels=[]
 valid_lens=[]
 data=[]
-pd_valid_lens=results.loc[2,:].tolist()[:total+1]
-for i in range(len(pd_valid_lens)):
-    pd_valid_lens[i]=int(pd_valid_lens[i])
-pd_data=results.loc[1,:].tolist()
-for i in range(len(pd_data)):
-    pd_data[i]=float(pd_data[i])
-pd_labels=results.loc[0,:].tolist()
-for i in range(len(pd_labels)):
-    if pd_labels[i]=='FALSE':
-        pd_labels[i]=0
-    else:
-        pd_labels[i] = 1
+# pd_valid_lens=results.loc[2,:].tolist()[:total+1]
+# for i in range(len(pd_valid_lens)):
+#     pd_valid_lens[i]=int(pd_valid_lens[i])
+# pd_data=results.loc[1,:].tolist()
+# for i in range(len(pd_data)):
+#     pd_data[i]=float(pd_data[i])
+# pd_labels=results.loc[0,:].tolist()
+# for i in range(len(pd_labels)):
+#     if pd_labels[i]=='FALSE':
+#         pd_labels[i]=0
+#     else:
+#         pd_labels[i] = 1
 
 def creat_his(raw,length=10):
     his=np.zeros(length)
