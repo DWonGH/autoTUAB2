@@ -55,7 +55,7 @@ with open(log_path,'a') as f:
      'batch_size','n_epochs','tmin','tmax','multiple','sec_to_cut','duration_recording_sec','max_abs_val',\
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
-     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording',\
+     'channels','dropout','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording',\
      'acc_per_recording','mcc','mcc_per_recording'])
 
 # Iterate over data/preproc parameters
@@ -230,13 +230,13 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             batch_size = min(batch_size, 4)
 
         mne.set_log_level(mne_log_level)
-        def exp(drop_prob=0.2,n_blocks=8, n_filters=2, kernel_size=11):
+        def exp(dropout=0.2,n_blocks=8, n_filters=2, kernel_size=11):
             n_blocks=int(n_blocks)
             n_filters=int(n_filters)
             kernel_size=int(kernel_size)
 
             # print(deep4_batch_norm_alpha)
-            # print(drop_prob,n_blocks, n_filters, kernel_size)
+            # print(dropout,n_blocks, n_filters, kernel_size)
             if model_name=='deep4':
                 model = Deep4Net(
                             n_channels, n_classes, input_window_samples=window_len_samples,
@@ -428,8 +428,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             with open(log_path, 'a') as f:
                 writer = csv.writer(f, delimiter=',', lineterminator='\n', )
 
-                for i in range(his_len-1):
-                    writer.writerow([df.loc[i+1][0],df.loc[i+1][1],df.loc[i+1][2],df.loc[i+1][3]])
+                for i2 in range(his_len-1):
+                    writer.writerow([df.loc[i2+1][0],df.loc[i2+1][1],df.loc[i2+1][2],df.loc[i2+1][3]])
                 writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
              model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
              window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
@@ -438,7 +438,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
              batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
              sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
              model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-             channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
+             channels,dropout,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
 
             # print(type(confusion_mat[0][0]))
             # # add class labels
@@ -493,7 +493,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
         if BO:
             bounds_transformer = SequentialDomainReductionTransformer()
-            pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
+            pbounds = {'dropout': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
             mutating_optimizer = BayesianOptimization(
                 f=exp,
                 pbounds=pbounds,
