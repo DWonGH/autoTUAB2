@@ -1,19 +1,8 @@
-
 from itertools import product
 import time
-import os
-from torch import nn, optim
-from torch.utils.data import DataLoader
-import csv
-import mne
-import numpy as np
 import pandas as pd
-import seaborn as sns
-import glob
-import re
 from bayes_opt import BayesianOptimization
 from bayes_opt import SequentialDomainReductionTransformer
-import matplotlib.pyplot as plt
 import torch
 from braindecode.datasets import TUHAbnormal,TUH,BaseConcatDataset
 from braindecode.preprocessing import create_fixed_length_windows
@@ -21,7 +10,6 @@ from braindecode.models import ShallowFBCSPNet, Deep4Net,EEGNetv4,EEGNetv1,EEGRe
                                 TIDNet,get_output_shape,HybridNet, SleepStagerChambon2018
 from braindecode.preprocessing import (
     exponential_moving_standardize, preprocess, Preprocessor, scale)
-from braindecode.util import np_to_th
 from braindecode.datautil import load_concat_dataset
 # from deep4_1 import Deep4Net_1
 from tcn_1 import TCN_1
