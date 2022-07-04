@@ -381,6 +381,7 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         # print(splits)
         train_valid_set = splits['True']
         test_set = splits['False']
+
         idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
                                                 random_state=random_state,
                                                 train_size=train_size/(train_size+valid_size),
