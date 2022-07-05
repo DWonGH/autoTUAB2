@@ -43,7 +43,7 @@ with open(log_path,'a') as f:
      'batch_size','n_epochs','tmin','tmax','multiple','sec_to_cut','duration_recording_sec','max_abs_val',\
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
-     'channels','dropout','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording',\
+     'channels','dropout','precision_per_recording','recall_per_recording',\
      'acc_per_recording','mcc','mcc_per_recording'])
 
 # Iterate over data/preproc parameters
@@ -218,13 +218,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             batch_size = min(batch_size, 4)
 
         mne.set_log_level(mne_log_level)
-        def exp(dropout=0.2,n_blocks=8, n_filters=2, kernel_size=11):
-            n_blocks=int(n_blocks)
-            n_filters=int(n_filters)
-            kernel_size=int(kernel_size)
+        def exp(dropout=0.2):
 
-            # print(deep4_batch_norm_alpha)
-            # print(dropout,n_blocks, n_filters, kernel_size)
             if model_name=='deep4':
                 model = Deep4Net(
                             n_channels, n_classes, input_window_samples=window_len_samples,
@@ -427,7 +422,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
              batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
              sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
              model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-             channels,dropout,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
+             channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
 
             # print(type(confusion_mat[0][0]))
             # # add class labels
@@ -482,7 +477,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
         if BO:
             bounds_transformer = SequentialDomainReductionTransformer()
-            pbounds = {'dropout': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
+            pbounds = {'dropout': (0,1)}
             mutating_optimizer = BayesianOptimization(
                 f=exp,
                 pbounds=pbounds,
@@ -501,4 +496,4 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             #     for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
             #         exp()
             # else:
-            exp()
+            exp(dropout=dropout)
