@@ -1,19 +1,8 @@
-
 from itertools import product
 import time
-import os
-from torch import nn, optim
-from torch.utils.data import DataLoader
-import csv
-import mne
-import numpy as np
 import pandas as pd
-import seaborn as sns
-import glob
-import re
 from bayes_opt import BayesianOptimization
 from bayes_opt import SequentialDomainReductionTransformer
-import matplotlib.pyplot as plt
 import torch
 from braindecode.datasets import TUHAbnormal,TUH,BaseConcatDataset
 from braindecode.preprocessing import create_fixed_length_windows
@@ -21,7 +10,6 @@ from braindecode.models import ShallowFBCSPNet, Deep4Net,EEGNetv4,EEGNetv1,EEGRe
                                 TIDNet,get_output_shape,HybridNet, SleepStagerChambon2018
 from braindecode.preprocessing import (
     exponential_moving_standardize, preprocess, Preprocessor, scale)
-from braindecode.util import np_to_th
 from braindecode.datautil import load_concat_dataset
 # from deep4_1 import Deep4Net_1
 from tcn_1 import TCN_1
@@ -55,7 +43,7 @@ with open(log_path,'a') as f:
      'batch_size','n_epochs','tmin','tmax','multiple','sec_to_cut','duration_recording_sec','max_abs_val',\
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
-     'channels','drop_prob','n_blocks','n_filters', 'kernel_size','precision_per_recording','recall_per_recording',\
+     'channels','dropout','precision_per_recording','recall_per_recording',\
      'acc_per_recording','mcc','mcc_per_recording'])
 
 # Iterate over data/preproc parameters
@@ -122,7 +110,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 tueg_ids=list(range(n_tueg)) if n_tueg else None
                 ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
                     preload=preload)
-                ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
+                if tuab:
+                    ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
 
                 print('tueg:',ds_tueg.description)
 
@@ -197,7 +186,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     # print(windows_ds.description)
 
     # Split the data:
-    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size,valid_size,test_size ,shuffle, random_state)
+    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state)
 
     etl_time = time.time() - data_loading_start
 
@@ -221,21 +210,16 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
               channels)
         if shuffle and i>0:
             # Re-split the data to ensure each repetition uses a different split:
-            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, shuffle,
-                                                        random_state+i,test_size,valid_size)
+            train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size,
+                                                        shuffle, random_state+i)
 
         if model_name=='vit':
             # Avoid memory errors by forcing smaller batch size
             batch_size = min(batch_size, 4)
 
         mne.set_log_level(mne_log_level)
-        def exp(drop_prob=0.2,n_blocks=8, n_filters=2, kernel_size=11):
-            n_blocks=int(n_blocks)
-            n_filters=int(n_filters)
-            kernel_size=int(kernel_size)
+        def exp(dropout=0.2):
 
-            # print(deep4_batch_norm_alpha)
-            # print(drop_prob,n_blocks, n_filters, kernel_size)
             if model_name=='deep4':
                 model = Deep4Net(
                             n_channels, n_classes, input_window_samples=window_len_samples,
@@ -438,7 +422,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
              batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
              sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
              model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-             channels,drop_prob,n_blocks, n_filters, kernel_size,precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
+             channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
 
             # print(type(confusion_mat[0][0]))
             # # add class labels
@@ -493,7 +477,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
         if BO:
             bounds_transformer = SequentialDomainReductionTransformer()
-            pbounds = {'drop_prob': (0,1),'n_blocks':(8,8.1), 'n_filters':(2,2.1), 'kernel_size':(11,11.1)}
+            pbounds = {'dropout': (0,1)}
             mutating_optimizer = BayesianOptimization(
                 f=exp,
                 pbounds=pbounds,
@@ -512,4 +496,4 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             #     for(deep4_batch_norm_alpha) in product(DEEP4_BATCH_NORM_ALPHA):
             #         exp()
             # else:
-                exp()
+            exp(dropout=dropout)

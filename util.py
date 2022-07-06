@@ -16,7 +16,8 @@ def findall(input,value):
         start=res[-1]+1
     return res
 
-def remove_tuab_from_dataset(ds,tuab_loc):
+
+def remove_tuab_from_dataset(ds, tuab_loc):
     tuab_list=get_full_filelist(tuab_loc,'.edf')
     for i in range(len(tuab_list)):
         tuab_list[i]= tuab_list[i].split("\\")[-1]
@@ -239,12 +240,14 @@ def natural_key(file_name):
 
 def time_key(file_name):
     """ provides a time-based sorting key """
-    splits = file_name.split('/')
-    [date] = re.findall(r'(\d{4}_\d{2}_\d{2})', splits[-1])
+    splits = file_name.split(os.path.sep)
+    [date] = re.findall(r'(\d{4}_\d{2}_\d{2})', splits[-2])
     date_id = [int(token) for token in date.split('_')]
-    recording_id = natural_key(splits[-1])
-    session_id = session_key(splits[-2])
-    return date_id + session_id + recording_id
+    # recording_id = natural_key(splits[-1])
+    # session_id = session_key(splits[-2])
+    [recording_id] = re.findall(r't(\d{3})', splits[-1])
+    [session_id] = re.findall(r's(\d{3})', splits[-1])
+    return date_id + [session_id] + [recording_id]
 
 def read_all_file_names(path, extension, key="time"):
     """ read all files with specified extension from given path
@@ -398,6 +401,7 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         # print(splits)
         train_valid_set = splits['True']
         test_set = splits['False']
+
         idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
                                                 random_state=random_state,
                                                 train_size=train_size/(train_size+valid_size),

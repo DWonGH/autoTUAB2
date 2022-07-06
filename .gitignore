@@ -7,16 +7,13 @@ batch_test_hyperparameters.py
 test.py
 test_eval.py
 params*.pt
-result.csv
+result*.csv
 history.json
 metadata.csv
 deep4_1.py
 globalvar.py
-training_detail.csv
-training_detail_1.csv
-training_detail_2.csv
+training_detail*.csv
 decision_result.csv
-training_detail_tcn1_TUEG.csv
 tueg_labels_1.csv
 training_detail_tueg_tuab.csv
 
