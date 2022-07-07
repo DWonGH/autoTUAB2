@@ -1,6 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
+column_of_interest = 'acc_per_recording'
+
 def analyse(ff):
 
     # load data from results.csv
@@ -26,8 +28,10 @@ def analyse(ff):
 
 
     # create box plots of 'accuracy', grouping by 'model_name' and 'channels'
-    results.boxplot(column='acc_per_recording', by=varied_cols)
+    results.boxplot(column=column_of_interest, by=varied_cols)
     plt.show()
+
+    print(results.groupby(varied_cols)[column_of_interest])
 
 
 # Press the green button in the gutter to run the script.
