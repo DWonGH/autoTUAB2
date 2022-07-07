@@ -8,6 +8,15 @@ import re
 import torch
 from sklearn.model_selection import train_test_split
 
+def findall(input,value):
+    start=0
+    res=[]
+    while value in input[start:]:
+        res.append(input.index(value,start))
+        start=res[-1]+1
+    return res
+
+
 def remove_tuab_from_dataset(ds, tuab_loc):
     tuab_list=get_full_filelist(tuab_loc,'.edf')
     for i in range(len(tuab_list)):
@@ -314,6 +323,17 @@ def select_labeled(ds):
     split = splits['0']
     return split
 
+def exclude_by_name(ds,names):
+    split_ids=[]
+    for d_i, d in enumerate(ds.description['path']):
+        if not d.split('\\')[-1] in names:
+            split_ids.append(d_i)
+        else:
+            print("a overlap")
+    splits = ds.split(split_ids)
+    split = splits['0']
+    return split
+
 def check_inf(ds):
     for d_i, d in enumerate(ds.datasets):
         print(d.raw.info)
@@ -391,5 +411,69 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         )
         valid_set = splits["valid"]
         train_set = splits["train"]
+    elif split_way=='patients':
+        paths = np.array(windows_ds.description.loc[:, ['path']]).tolist()
+        patients = []
+        sessions = []
+        for i in range(len(paths)):
+            splits = paths[i][0].split('\\')
+            patients.append(splits[-3])
+            sessions.append(splits[-2])
+        unique_patients=list(set(patients))
+        # print(unique_patients)
+        idx_train_patients, idx_valid_test_patients = train_test_split(np.arange(len(unique_patients)),
+                                                     random_state=random_state,
+                                                     train_size=train_size,
+                                                     shuffle=shuffle)
+        idx_valid_patients, idx_test_patients = train_test_split(idx_valid_test_patients, random_state=random_state, test_size=test_size/(test_size+valid_size),
+                                               shuffle=shuffle)
+        idx_train=[]
+        for i in idx_train_patients:
+            idx_train+=findall(patients,unique_patients[i])
+        idx_valid=[]
+        for i in idx_valid_patients:
+            idx_valid+=findall(patients,unique_patients[i])
+        idx_test=[]
+        for i in idx_test_patients:
+            idx_test+=findall(patients,unique_patients[i])
+        splits = windows_ds.split(
+            {"train": idx_train, "valid": idx_valid, "test": idx_test}
+        )
+        valid_set = splits["valid"]
+        train_set = splits["train"]
+        test_set = splits["test"]
+    elif split_way=='sessions':
+        paths = np.array(windows_ds.description.loc[:, ['path']]).tolist()
+        patients = []
+        sessions = []
+        for i in range(len(paths)):
+            splits = paths[i][0].split('\\')
+            patients.append(splits[-3])
+            sessions.append(splits[-2]+splits[-3])
+
+        unique_sessions=list(set(sessions))
+        print(unique_sessions)
+        idx_train_patients, idx_valid_test_patients = train_test_split(np.arange(len(unique_sessions)),
+                                                     random_state=random_state,
+                                                     train_size=train_size,
+                                                     shuffle=shuffle)
+        idx_valid_patients, idx_test_patients = train_test_split(idx_valid_test_patients, random_state=random_state, test_size=test_size/(test_size+valid_size),
+                                               shuffle=shuffle)
+        idx_train=[]
+        for i in idx_train_patients:
+            idx_train+=findall(sessions,unique_sessions[i])
+        idx_valid=[]
+        for i in idx_valid_patients:
+            idx_valid+=findall(sessions,unique_sessions[i])
+        idx_test=[]
+        for i in idx_test_patients:
+            idx_test+=findall(sessions,unique_sessions[i])
+        splits = windows_ds.split(
+            {"train": idx_train, "valid": idx_valid, "test": idx_test}
+        )
+        valid_set = splits["valid"]
+        train_set = splits["train"]
+        test_set = splits["test"]
+
 
     return train_set, valid_set, test_set
