@@ -310,7 +310,7 @@ def relabel(dataset,label_path,dataset_folder):
     if 'pathological' not in list(des):
         des['pathological']=[2]*len(des['age'])
     for i in range(len(all_labelled_TUEG_file_names)):
-        des['pathological'][des_file.index(os.path.basename(all_labelled_TUEG_file_names[i]))]=bool(TUEG_labels[i])
+        des['pathological'][des_file.index(os.path.basename(all_labelled_TUEG_file_names[i]))]=bool(int(TUEG_labels[i]))
     return des
 
 # Remove unlabeled data
