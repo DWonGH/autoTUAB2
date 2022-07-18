@@ -3,7 +3,7 @@ MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
 
 
 # parameters
-
+REMOVE_ATTRIBUTE=['patients']
 N_REPETITIONS=1
 RANDOM_STATE = [87]
 TUAB=[True]

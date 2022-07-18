@@ -35,6 +35,33 @@ def remove_tuab_from_dataset(ds, tuab_loc):
     split = splits['0']
     return split
 
+def remove_same(ds1, ds2,attribute):
+
+    if attribute=='file_name':
+        loc=-1
+    elif attribute=='patients':
+        loc=-3
+    elif attribute=='sessions':
+        loc=-2
+    paths = np.array(ds1.description.loc[:, ['path']]).tolist()
+    attributes = []
+    for i in range(len(paths)):
+        splits = paths[i][0].split('\\')
+        attributes.append(splits[loc])
+    unique_attributes = list(set(attributes))
+    split_ids = []
+    for d_i, d in enumerate(ds2.description['path']):
+        attributes2=d.split("\\")[loc]
+        if not attributes2 in unique_attributes:
+            # print(file_name)
+            split_ids.append(d_i)
+        else:
+            print(attributes2)
+    print(split_ids)
+    splits = ds2.split(split_ids)
+    split = splits['0']
+    return split
+
 def weight_function(targets,device='cpu'):
     # targets = targets.cpu()
     weights = max(np.count_nonzero(targets == 0), np.count_nonzero(targets == 1)) / \
@@ -305,7 +332,8 @@ def relabel(dataset,label_path,dataset_folder):
             # print(this_file_names)
             [all_labelled_TUEG_file_names.append(ff) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
             [TUEG_labels.append(label) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
-    print(all_labelled_TUEG_file_names)
+    print('all_labelled_TUEG_file_names:',all_labelled_TUEG_file_names)
+    print(len(all_labelled_TUEG_file_names))
     # print(list(des))
     if 'pathological' not in list(des):
         des['pathological']=[2]*len(des['age'])
@@ -363,7 +391,7 @@ def custom_crop(raw, tmin=0.0, tmax=None, include_tmax=True):
     raw.crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
 
-def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state):
+def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state,remove_attribute=None):
     if split_way == 'proportion':
         idx_train, idx_valid_test = train_test_split(np.arange(len(windows_ds.description['path'])),
                                                      random_state=random_state,
@@ -475,5 +503,6 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         train_set = splits["train"]
         test_set = splits["test"]
 
-
+    if remove_attribute:
+        train_set = remove_same(test_set, train_set, remove_attribute)
     return train_set, valid_set, test_set

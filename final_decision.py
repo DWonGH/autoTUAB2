@@ -19,8 +19,9 @@ LENGTH=[10]
 USE_HIS=[True]
 ADAP_POOL=[False]
 USE_HYBRID=[True]
-TOTAL=[5972]
-USE_SESSION_OR_PATIENTS=[None]#'patients','sessions',None
+TOTAL=[2900]#5972
+num_epochs=[20]
+USE_SESSION_OR_PATIENTS=['patients','sessions']#'patients','sessions',None
 filename = './training_detail_tueg_tuab.csv'
 for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patients) in product(N_REPETITION,\
     LENGTH,USE_HIS,ADAP_POOL,USE_HYBRID,TOTAL,USE_SESSION_OR_PATIENTS):
@@ -252,7 +253,7 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
 
         loss = torch.nn.NLLLoss()
         model.train()
-        num_epochs=20
+
 
         min_loss_val = 1000000
         best_model=None

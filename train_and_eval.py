@@ -52,14 +52,14 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
      load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
      standardization,factor_new,init_block_size,n_jobs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
      sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,window_stride_samples,\
-     relabel_dataset,relabel_label,channels) in product(
+     relabel_dataset,relabel_label,channels,remove_attribute) in product(
             RANDOM_STATE,TUAB,TUEG,N_TUAB,N_TUEG,N_LOAD,PRELOAD,\
             WINDOW_LEN_S,TUAB_PATH,TUEG_PATH,SAVED_DATA,SAVED_PATH,SAVED_WINDOWS_DATA,\
             SAVED_WINDOWS_PATH,LOAD_SAVED_DATA,LOAD_SAVED_WINDOWS,BANDPASS_FILTER,\
             LOW_CUT_HZ,HIGH_CUT_HZ,STANDARDIZATION,FACTOR_NEW,INIT_BLOCK_SIZE,N_JOBS,\
             TMIN,TMAX,MULTIPLE,SEC_TO_CUT,\
             DURATION_RECORDING_SEC,MAX_ABS_VAL,SAMPLING_FREQ,TEST_ON_VAL,SPLIT_WAY,\
-            TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS):
+            TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS,REMOVE_ATTRIBUTE):
     print(random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
     tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
     load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
@@ -67,7 +67,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     tmin, tmax, multiple, sec_to_cut, duration_recording_sec, max_abs_val, \
     sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
     relabel_dataset, relabel_label, \
-    channels)
+    channels,remove_attribute)
 
     cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
     device = 'cuda' if cuda else 'cpu'
@@ -186,7 +186,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     # print(windows_ds.description)
 
     # Split the data:
-    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state)
+    train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state,remove_attribute)
 
     etl_time = time.time() - data_loading_start
 

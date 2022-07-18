@@ -16,6 +16,7 @@ training_detail*.csv
 decision_result.csv
 tueg_labels_1.csv
 training_detail_tueg_tuab.csv
+requirements.txt
 
 
 
