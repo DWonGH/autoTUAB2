@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch import nn
 from torch.nn import init
+import time
 import numpy as np
 import copy
 from sklearn.model_selection import train_test_split
@@ -15,16 +16,21 @@ from util import *
 from itertools import product
 
 N_REPETITION=[5]
-LENGTH=[10]
-USE_HIS=[True]
+LENGTH=[10]#2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
+USE_HIS=[False]
 ADAP_POOL=[False]
-USE_HYBRID=[True]
-TOTAL=[2900]#5972
-num_epochs=[20]
-USE_SESSION_OR_PATIENTS=['patients','sessions']#'patients','sessions',None
-filename = './training_detail_tueg_tuab.csv'
-for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patients) in product(N_REPETITION,\
-    LENGTH,USE_HIS,ADAP_POOL,USE_HYBRID,TOTAL,USE_SESSION_OR_PATIENTS):
+USE_HYBRID=[False]
+TOTAL=[21629+21629]#5972,21629
+NUM_EPOCHS=[80]#20,40,60,80
+USE_SESSION_OR_PATIENTS=['patients','sessions',None]#'patients','sessions',None
+LR=[0.005]#0.001,0.002,0.005,0.01
+filename = './training_detail.csv'
+BATCH_SIZE=[256]#8,16,32,64,128,256,512,1024
+for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patients,batch_size,num_epochs,lr) in product(N_REPETITION,\
+    LENGTH,USE_HIS,ADAP_POOL,USE_HYBRID,TOTAL,USE_SESSION_OR_PATIENTS,BATCH_SIZE,NUM_EPOCHS,LR):
+    print('batch_size',batch_size)
+    print('num_epochs',num_epochs)
+    print('lr',lr)
     # n_repetition=5
     # length=7
     # use_his=True
@@ -46,28 +52,50 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
     with open(filename, newline='') as csvfile:
         results = csv.reader(csvfile, delimiter=',')
         for i, row in enumerate(results):
-            if i >=35 and i<39:
+            if i >=0 and i<16:
                 pd_labels+=row
-            elif i>=39 and i<43:
+            elif i>=16 and i<32:
                 pd_data+=row
-            elif i==43:
+            elif i==32:
                 pd_valid_lens+=row
                 data1_len=len(pd_labels)
-                # print(len(pd_labels))
-            elif i==44:
+                print(len(pd_labels))
+            elif i==33:
                 patients+=row
-            elif i==45:
+            elif i==34:
                 sessions+=row
-            elif i >=46 and i<50:
-                pd_labels+=row
-            elif i>=50 and i<54:
-                pd_data+=row
-            elif i==54:
+            # if i >= 35 and i < 51:
+            #     pd_labels += row
+            # elif i >= 51 and i < 67:
+            #     pd_data += row
+            # elif i == 67:
+            #     pd_valid_lens += row
+            #     data1_len = len(pd_labels)
+            #     print(len(pd_labels))
+            # elif i == 68:
+            #     patients += row
+            # elif i == 69:
+            #     sessions += row
+            if i >= 35 and i < 51:
+                pd_labels += row
+            elif i >= 51 and i < 67:
+                pd_data += row
+            elif i == 67:
                 pd_valid_lens+=[int(i1)+data1_len for i1 in row]
-            elif i==55:
-                patients+=row
-            elif i==56:
-                sessions+=row
+            elif i == 68:
+                patients += row
+            elif i == 69:
+                sessions += row
+            # elif i >=46 and i<50:
+            #     pd_labels+=row
+            # elif i>=50 and i<54:
+            #     pd_data+=row
+            # elif i==54:
+            #     pd_valid_lens+=[int(i1)+data1_len for i1 in row]
+            # elif i==55:
+            #     patients+=row
+            # elif i==56:
+            #     sessions+=row
     pd_valid_lens.append(len(pd_labels))
     for i in range(len(pd_valid_lens)):
         pd_valid_lens[i]=int(pd_valid_lens[i])
@@ -193,8 +221,8 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
         valid_set=torch.utils.data.Subset(dataset,idx_valid)
         train_set = torch.utils.data.Subset(dataset, idx_train)
         #将数据集导入DataLoader，进行shuffle以及选取batch_size
-        data_loader = DataLoader(train_set,batch_size=1,shuffle=True,num_workers=0)
-        data_loader_valid=DataLoader(valid_set,batch_size=1,shuffle=True,num_workers=0)
+        data_loader = DataLoader(train_set,batch_size=batch_size,shuffle=True,num_workers=0)
+        data_loader_valid=DataLoader(valid_set,batch_size=batch_size,shuffle=True,num_workers=0)
 
 
         # for datum,label,valid_len in data_loader:
@@ -210,9 +238,17 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
                     self.pooling=nn.AdaptiveAvgPool1d((10))
                     self.classifer=nn.Linear(10,2)
                 else:
+                    # self.classifer=nn.Sequential(
+                    #     nn.Linear(20,20),
+                    #     nn.ReLU(),
+                    #     nn.Linear(20,2)
+                    # )
                     self.classifer=nn.Linear(20,2)
                 self.log_softmax = nn.LogSoftmax(dim=1)
                 init.normal_(self.classifer.weight, 0, 0.01)
+                # for layer in self.classifer:
+                #     if isinstance(layer, nn.Linear):
+                #         layer.weight.data.normal_()
             def forward(self,x,valid_len):
                 if self.adap_pool:
                     x=x[:,:valid_len]
@@ -246,10 +282,10 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
         cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
         device = 'cuda' if cuda else 'cpu'
         model.to(device)
-        lr=0.001
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        T_max=20
-        torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max, eta_min=0, last_epoch=-1)
+
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr,weight_decay=0.01)
+        T_max=num_epochs
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max, eta_min=0, last_epoch=-1)
 
         loss = torch.nn.NLLLoss()
         model.train()
@@ -257,11 +293,12 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
 
         min_loss_val = 1000000
         best_model=None
+        iters = len(data_loader)
         for epoch in range(num_epochs):
             all=0
             right=0
             total_loss=0
-            for batch in data_loader:
+            for i,batch in enumerate(data_loader):
                 optimizer.zero_grad()
                 X, Y,valid_len = [x.to(device) for x in batch]
 
@@ -277,6 +314,7 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
                 total_loss+=l
                 l.backward()  # Make the loss scalar for `backward`
                 optimizer.step()
+                scheduler.step(epoch + i / iters)
             if (epoch+1)%2==0:
                 print('epoch:',epoch+1)
                 print('loss:',total_loss)
@@ -321,7 +359,7 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
             right_ori+=sum(compare_res)
             all_ori += X.numel()
             for i in compare_res:
-                if i>10:
+                if i>valid_len/2:
                     right_argmax+=1
                 all_argmax+=1
             mean_res=torch.mean(X,dim=-1)
@@ -354,8 +392,8 @@ for (n_repetition,length,use_his,adap_pool,use_hybrid,total,use_session_or_patie
     print('ave_mean_acc',ave_mean_acc)
     with open('./decision_result.csv','a') as f:
         writer=csv.writer(f, delimiter=',',lineterminator='\n',)
-        writer.writerow(['use_hybrid','n_repetition','length','use_his','adap_pool','ave_test_acc','ave_ori_acc','ave_argmax_acc','ave_mean_acc','use_session','total'])
-        writer.writerow([use_hybrid,n_repetition,length,use_his,adap_pool,ave_test_acc,ave_ori_acc,ave_argmax_acc,ave_mean_acc,use_session_or_patients,total])
+        writer.writerow(['use_hybrid','n_repetition','length','use_his','adap_pool','ave_test_acc','ave_ori_acc','ave_argmax_acc','ave_mean_acc','use_session','total','epochs','time','batch_size','num_epochs','lr'])
+        writer.writerow([use_hybrid,n_repetition,length,use_his,adap_pool,ave_test_acc,ave_ori_acc,ave_argmax_acc,ave_mean_acc,use_session_or_patients,total,num_epochs,time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time())),batch_size,num_epochs,lr])
 
 
 

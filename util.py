@@ -7,6 +7,8 @@ import glob
 import re
 import torch
 from sklearn.model_selection import train_test_split
+from braindecode.datasets import BaseConcatDataset
+
 
 def findall(input,value):
     start=0
@@ -502,7 +504,52 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         valid_set = splits["valid"]
         train_set = splits["train"]
         test_set = splits["test"]
+    elif split_way=='train_on_tuab_tueg_test_on_tueg' or split_way=='train_on_tuab_tueg_test_on_tuab':
+        des = windows_ds.description
+        path = des['path']
+        train = des['train']
+        for i in range(len(train)):
+            if train[i] != True and train[i] != False:
+                # print(train[i])
+                train[i]='others'
+        windows_ds.set_description(des, overwrite=True)
+        print(windows_ds.description)
+        splits = windows_ds.split('train')
+        print(splits)
+        tuab_train= splits['True']
+        tuab_test = splits['False']
+        tueg_whole=splits['others']
+
+        idx_tueg_train, idx_tueg_test = train_test_split(np.arange(len(tueg_whole.description['path'])),
+                                                random_state=random_state,
+                                                train_size=train_size/(train_size+valid_size),
+                                                shuffle=shuffle)
+        splits = windows_ds.split(
+            {"train": idx_tueg_train, "valid": idx_tueg_test}
+        )
+        tueg_test = splits["valid"]
+        tueg_train = splits["train"]
+        train_valid_set=BaseConcatDataset(([i for i in tueg_train.datasets])+([j for j in tuab_train.datasets]))
+        idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
+                                                     random_state=random_state,
+                                                     train_size=train_size/(train_size+valid_size),
+                                                     shuffle=shuffle)
+        splits = windows_ds.split(
+            {"train": idx_train, "valid": idx_valid}
+        )
+        valid_set = splits["valid"]
+        train_set = splits["train"]
+        if split_way=='train_on_tuab_tueg_test_on_tueg':
+            test_set=tueg_test
+        elif split_way=='train_on_tuab_tueg_test_on_tuab':
+            test_set=tuab_test
 
     if remove_attribute:
         train_set = remove_same(test_set, train_set, remove_attribute)
+    print('train_set:')
+    print(train_set.description)
+    print('valid_set:')
+    print(valid_set.description)
+    print('test_set:')
+    print(test_set.description)
     return train_set, valid_set, test_set

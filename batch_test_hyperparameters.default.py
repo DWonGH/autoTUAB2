@@ -1,20 +1,14 @@
-
 MNE_LOG_LEVEL = ['WARNING' ] # avoid messages everytime a window is extracted
 
-
 # parameters
-REMOVE_ATTRIBUTE=['patients']
+REMOVE_ATTRIBUTE=[None]#'patients','sessions',None
 N_REPETITIONS=1
 RANDOM_STATE = [87]
 TUAB=[True]
 TUEG=[True]
-
-# Setting any of the following to None will use all available recordings in the corresponding category.
-# e.g. N_TUAB = None will use all recordings in the TUAB dataset.
 N_TUAB=[50]
 N_TUEG=[50]
-N_LOAD=[25]
-
+N_LOAD=[100]
 PRELOAD=[True]
 WINDOW_LEN_S=[60]
 TUAB_PATH = ['D:/phd/tuab3g/v2.0.0/edf']
@@ -42,22 +36,22 @@ BATCH_SIZE = [1]
 N_EPOCHS = [2]
 # determine length of the recordings and select based on tmin and tmax
 TMIN = [5 * 60]
-TMAX = [35* 60]
+TMAX = [None]
 MULTIPLE=[0]
 SEC_TO_CUT = [60]  # cut away at start of each recording
 DURATION_RECORDING_SEC =[20*60 ] # how many minutes to use per recording
 MAX_ABS_VAL =[800]  # for clipping
 SAMPLING_FREQ = [100]
 TEST_ON_VAL = [True]  # test on evaluation set or on training set
-SPLIT_WAY=['proportion'] #'proportion' or 'folder'
+SPLIT_WAY=['train_on_tuab_tueg_test_on_tueg'] #'proportion' or 'folder','train_on_tuab_tueg_test_on_tueg' ,'train_on_tuab_tueg_test_on_tuab','patients','sessions'
 TRAIN_SIZE=[0.6 ]#train_size+valid_size+test_size=1.0
 VALID_SIZE=[0.2]
 TEST_SIZE=[0.2]
 SHUFFLE = [True]
-MODEL_NAME = ['tcn_1']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
+MODEL_NAME = ['deep4']#Currently available:'deep4','eegnetv4','eegnetv1','sleep2020','usleep','tidnet','tcn_1',\
                         # 'hybridnet_1','eegresnet','vit'
 # model specific hyperparameters
-DEEP4_BATCH_NORM_ALPHA=[0.1,0.2]
+DEEP4_BATCH_NORM_ALPHA=[0.1]
 
 FINAL_CONV_LENGTH = ["auto"]
 DROPOUT=[0.1]
@@ -71,4 +65,4 @@ CHANNELS=[[
             'EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF',
             'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF',
             'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF',
-            'EEG T6-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF']]
+            'EEG T6-REF', 'EEG FZ-REF', 'EEG PZ-REF','EEG CZ-REF', ]]
