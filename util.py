@@ -521,16 +521,40 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         tuab_train= splits['True']
         tuab_test = splits['False']
         tueg_whole=splits['others']
-
-        idx_tueg_train, idx_tueg_test = train_test_split(np.arange(len(tueg_whole.description['path'])),
-                                                random_state=random_state,
-                                                train_size=train_size/(train_size+valid_size),
-                                                shuffle=shuffle)
+        paths = np.array(tueg_whole.description.loc[:, ['path']]).tolist()
+        patients = []
+        sessions = []
+        for i in range(len(paths)):
+            splits = paths[i][0].split('\\')
+            patients.append(splits[-3])
+            sessions.append(splits[-2])
+        unique_patients = list(set(patients))
+        # print(unique_patients)
+        idx_train_patients, idx_test_patients = train_test_split(np.arange(len(unique_patients)),
+                                                                       random_state=random_state,
+                                                                       train_size=train_size+valid_size,
+                                                                       shuffle=shuffle)
+        idx_train = []
+        for i in idx_train_patients:
+            idx_train += findall(patients, unique_patients[i])
+        idx_test = []
+        for i in idx_test_patients:
+            idx_test += findall(patients, unique_patients[i])
         splits = windows_ds.split(
-            {"train": idx_tueg_train, "valid": idx_tueg_test}
+            {"train": idx_train, "test": idx_test}
         )
-        tueg_test = splits["valid"]
         tueg_train = splits["train"]
+        tueg_test = splits["test"]
+
+        # idx_tueg_train, idx_tueg_test = train_test_split(np.arange(len(tueg_whole.description['path'])),
+        #                                         random_state=random_state,
+        #                                         train_size=train_size/(train_size+valid_size),
+        #                                         shuffle=shuffle)
+        # splits = windows_ds.split(
+        #     {"train": idx_tueg_train, "valid": idx_tueg_test}
+        # )
+        # tueg_test = splits["valid"]
+        # tueg_train = splits["train"]
         train_valid_set=BaseConcatDataset(([i for i in tueg_train.datasets])+([j for j in tuab_train.datasets]))
         idx_train, idx_valid = train_test_split(np.arange(len(train_valid_set.description['path'])),
                                                      random_state=random_state,
