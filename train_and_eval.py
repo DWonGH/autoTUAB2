@@ -15,7 +15,7 @@ from braindecode.datautil import load_concat_dataset
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
 from vit import ViT
-
+from Trans import ViT_space_fusion
 from util import *
 from train_and_eval_config import *
 from batch_test_hyperparameters import *
@@ -263,7 +263,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 model = HybridNet_1(n_channels, n_classes, window_len_samples)
             elif model_name == 'vit':
                 model = ViT(num_channels=n_channels,input_window_samples = window_len_samples,patch_size = vit_patch_size,num_classes = n_classes,dim = vit_dim,depth = vit_depth,heads = vit_heads,mlp_dim = vit_mlp_dim,dropout = dropout,emb_dropout = vit_emb_dropout)
-
+            elif model_name == 'vit_space_fusion':
+                model=ViT_space_fusion(input_window_samples = window_len_samples)
             print(get_output_shape(model,n_channels,window_len_samples))
             print(model)
 
