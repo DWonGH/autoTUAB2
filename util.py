@@ -38,7 +38,7 @@ def remove_tuab_from_dataset(ds, tuab_loc):
     return split
 
 def remove_same(ds1, ds2,attribute):
-
+    remove_num=0
     if attribute=='file_name':
         loc=-1
     elif attribute=='patients':
@@ -59,7 +59,9 @@ def remove_same(ds1, ds2,attribute):
             split_ids.append(d_i)
         else:
             print(attributes2)
-    print(split_ids)
+            remove_num+=1
+    # print(split_ids)
+    print('remove_num:',remove_num)
     splits = ds2.split(split_ids)
     split = splits['0']
     return split
