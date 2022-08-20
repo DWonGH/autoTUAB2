@@ -19,11 +19,19 @@ from Trans import ViT_space_fusion
 from util import *
 from train_and_eval_config import *
 from batch_test_hyperparameters import *
+import win32file
 
 import warnings
 warnings.filterwarnings("once")
 
 pd.set_option('display.max_columns', 10)
+
+# win32file._setmaxstdio(2048)
+# print(win32file._getmaxstdio())
+#
+# import ctypes
+# ctypes.windll.msvcrt._setmaxstdio(2048)
+# print(ctypes.windll.msvcrt._getmaxstdio())
 
 # import globalvar as gl
 # gl._init()
@@ -44,7 +52,7 @@ with open(log_path,'a') as f:
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
      'channels','dropout','precision_per_recording','recall_per_recording',\
-     'acc_per_recording','mcc','mcc_per_recording'])
+     'acc_per_recording','mcc','mcc_per_recording','remove_attribute'])
 
 # Iterate over data/preproc parameters
 for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
@@ -89,6 +97,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             preload=False,
             ids_to_load=load_ids,
             target_name='pathological',
+            n_jobs=1,
         )
     else:
         if load_saved_data:
@@ -423,7 +432,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
              batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
              sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
              model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-             channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording])
+             channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,remove_attribute])
 
             # print(type(confusion_mat[0][0]))
             # # add class labels

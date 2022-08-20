@@ -23,16 +23,16 @@ def remove_tuab_from_dataset(ds, tuab_loc):
     tuab_list=get_full_filelist(tuab_loc,'.edf')
     for i in range(len(tuab_list)):
         tuab_list[i]= tuab_list[i].split("\\")[-1]
-    print(tuab_list)
+    # print(tuab_list)
     split_ids = []
     for d_i, d in enumerate(ds.description['path']):
         file_name=d.split("\\")[-1]
         if not file_name in tuab_list:
             # print(file_name)
             split_ids.append(d_i)
-        else:
-            print(file_name)
-    print(split_ids)
+        # else:
+            # print(file_name)
+    # print(split_ids)
     splits = ds.split(split_ids)
     split = splits['0']
     return split
@@ -58,7 +58,7 @@ def remove_same(ds1, ds2,attribute):
             # print(file_name)
             split_ids.append(d_i)
         else:
-            print(attributes2)
+            # print(attributes2)
             remove_num+=1
     # print(split_ids)
     print('remove_num:',remove_num)
@@ -337,7 +337,7 @@ def relabel(dataset,label_path,dataset_folder):
             [all_labelled_TUEG_file_names.append(ff) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
             [TUEG_labels.append(label) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
     print('all_labelled_TUEG_file_names:',all_labelled_TUEG_file_names)
-    print(len(all_labelled_TUEG_file_names))
+    # print(len(all_labelled_TUEG_file_names))
     # print(list(des))
     if 'pathological' not in list(des):
         des['pathological']=[2]*len(des['age'])
@@ -423,7 +423,7 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
             if train[i] != True and train[i] != False:
                 # print(train[i])
                 if 'eval' in path[i]:
-                    print(path[i])
+                    # print(path[i])
                     des['train'] [i]= False
                 else:
                     des['train'][i] = True
@@ -484,7 +484,7 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
             sessions.append(splits[-2]+splits[-3])
 
         unique_sessions=list(set(sessions))
-        print(unique_sessions)
+        # print(unique_sessions)
         idx_train_patients, idx_valid_test_patients = train_test_split(np.arange(len(unique_sessions)),
                                                      random_state=random_state,
                                                      train_size=train_size,
@@ -515,9 +515,9 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
                 # print(train[i])
                 train[i]='others'
         windows_ds.set_description(des, overwrite=True)
-        print(windows_ds.description)
+        # print(windows_ds.description)
         splits = windows_ds.split('train')
-        print(splits)
+        # print(splits)
         tuab_train= splits['True']
         tuab_test = splits['False']
         tueg_whole=splits['others']
@@ -540,7 +540,7 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
         idx_test = []
         for i in idx_test_patients:
             idx_test += findall(patients, unique_patients[i])
-        splits = windows_ds.split(
+        splits = tueg_whole.split(
             {"train": idx_train, "test": idx_test}
         )
         tueg_train = splits["train"]
@@ -560,7 +560,7 @@ def split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle
                                                      random_state=random_state,
                                                      train_size=train_size/(train_size+valid_size),
                                                      shuffle=shuffle)
-        splits = windows_ds.split(
+        splits = train_valid_set.split(
             {"train": idx_train, "valid": idx_valid}
         )
         valid_set = splits["valid"]
