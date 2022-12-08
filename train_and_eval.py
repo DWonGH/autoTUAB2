@@ -11,7 +11,8 @@ from braindecode.models import ShallowFBCSPNet, Deep4Net,EEGNetv4,EEGNetv1,EEGRe
 from braindecode.preprocessing import (
     exponential_moving_standardize, preprocess, Preprocessor, scale)
 from braindecode.datautil import load_concat_dataset
-# from deep4_1 import Deep4Net_1
+from deep4_1 import Deep4Net_1
+from deep4_module import Deep4Net_2
 from tcn_1 import TCN_1
 from hybrid_1 import HybridNet_1
 from vit import ViT
@@ -19,16 +20,19 @@ from Trans import ViT_space_fusion
 from util import *
 from train_and_eval_config import *
 from batch_test_hyperparameters import *
-import win32file
+
+
+from torch.nn.functional import elu,relu,gelu
+
+
+
 
 import warnings
 warnings.filterwarnings("once")
 
 pd.set_option('display.max_columns', 10)
 
-# win32file._setmaxstdio(2048)
-# print(win32file._getmaxstdio())
-#
+
 # import ctypes
 # ctypes.windll.msvcrt._setmaxstdio(2048)
 # print(ctypes.windll.msvcrt._getmaxstdio())
@@ -38,7 +42,7 @@ pd.set_option('display.max_columns', 10)
 #
 # gl.set_value('val_a',0 )
 
-
+params=params_deep4_60
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
@@ -52,7 +56,10 @@ with open(log_path,'a') as f:
      'sampling_freq','test_on_eval','split_way','train_size','valid_size','test_size','shuffle',\
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
      'channels','dropout','precision_per_recording','recall_per_recording',\
-     'acc_per_recording','mcc','mcc_per_recording','remove_attribute'])
+
+     'acc_per_recording','mcc','mcc_per_recording','activation','remove_attribute'])
+
+
 
 # Iterate over data/preproc parameters
 for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
@@ -60,14 +67,14 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
      load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
      standardization,factor_new,init_block_size,n_jobs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
      sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,window_stride_samples,\
-     relabel_dataset,relabel_label,channels,remove_attribute) in product(
+     relabel_dataset,relabel_label,channels,remove_attribute,activation) in product(
             RANDOM_STATE,TUAB,TUEG,N_TUAB,N_TUEG,N_LOAD,PRELOAD,\
             WINDOW_LEN_S,TUAB_PATH,TUEG_PATH,SAVED_DATA,SAVED_PATH,SAVED_WINDOWS_DATA,\
             SAVED_WINDOWS_PATH,LOAD_SAVED_DATA,LOAD_SAVED_WINDOWS,BANDPASS_FILTER,\
             LOW_CUT_HZ,HIGH_CUT_HZ,STANDARDIZATION,FACTOR_NEW,INIT_BLOCK_SIZE,N_JOBS,\
             TMIN,TMAX,MULTIPLE,SEC_TO_CUT,\
             DURATION_RECORDING_SEC,MAX_ABS_VAL,SAMPLING_FREQ,TEST_ON_VAL,SPLIT_WAY,\
-            TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS,REMOVE_ATTRIBUTE):
+            TRAIN_SIZE,VALID_SIZE,TEST_SIZE,SHUFFLE,WINDOW_STRIDE_SAMPLES,RELABEL_DATASET,RELABEL_LABEL,CHANNELS,REMOVE_ATTRIBUTE,ACTIVATION):
     print(random_state, tuab, tueg, n_tuab, n_tueg, n_load, preload, window_len_s, \
     tuab_path, tueg_path, saved_data, saved_path, saved_windows_data, saved_windows_path, \
     load_saved_data, load_saved_windows, bandpass_filter, low_cut_hz, high_cut_hz, \
@@ -79,6 +86,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
     cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
     device = 'cuda' if cuda else 'cpu'
+    print('device:',device)
     if cuda:
         torch.backends.cudnn.benchmark = True
     # torch.backends.cudnn.benchmark = True  # Enables automatic algorithm optimizations
@@ -166,7 +174,9 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 if saved_data:
                     ds.save(saved_path, overwrite=True)
             else:
-                preprocess(ds, preprocessors, n_jobs=n_jobs, save_dir=saved_path, overwrite=True)
+                # preprocess(ds, preprocessors, n_jobs=n_jobs, save_dir=saved_path, overwrite=True)
+                preprocess(ds, preprocessors)
+
 
         fs = ds.datasets[0].raw.info['sfreq']
         # print("fs:",fs)
@@ -196,7 +206,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
     # Split the data:
     train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state,remove_attribute)
-
+    print('len_valid_train',len(train_set.description.loc[:, ['path']])+len(valid_set.description.loc[:, ['path']]))
+    print('len_test',len(test_set.description.loc[:, ['path']]))
     etl_time = time.time() - data_loading_start
 
     n_channels = windows_ds[0][0].shape[0]
@@ -228,7 +239,12 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
         mne.set_log_level(mne_log_level)
         def exp(dropout=0.2):
-
+            if activation=='elu':
+                nonlin=elu
+            elif activation=='relu':
+                nonlin=relu
+            elif activation=='gelu':
+                nonlin=gelu
             if model_name=='deep4':
                 model = Deep4Net(
                             n_channels, n_classes, input_window_samples=window_len_samples,
@@ -238,7 +254,27 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                             filter_length_3=deep4_filter_length_3, n_filters_4=deep4_n_filters_4, filter_length_4=deep4_filter_length_4,
                             first_pool_mode=deep4_first_pool_mode, later_pool_mode=deep4_later_pool_mode, drop_prob=dropout,
                             double_time_convs=False, split_first_layer=True, batch_norm=True,
+                            batch_norm_alpha=0.1, stride_before_pool=False,first_nonlin=nonlin,later_nonlin=nonlin)
+            elif model_name=='deep4_1':
+                model = Deep4Net_1(
+                            n_channels, n_classes, input_window_samples=window_len_samples,
+                            final_conv_length=final_conv_length, n_filters_time=deep4_n_filters_time, n_filters_spat=deep4_n_filters_spat,
+                            filter_time_length=deep4_filter_time_length, pool_time_length=deep4_pool_time_length, pool_time_stride=deep4_pool_time_stride,
+                            n_filters_2=deep4_n_filters_2, filter_length_2=deep4_filter_length_2, n_filters_3=deep4_n_filters_3,
+                            filter_length_3=deep4_filter_length_3, n_filters_4=deep4_n_filters_4, filter_length_4=deep4_filter_length_4,
+                            first_pool_mode=deep4_first_pool_mode, later_pool_mode=deep4_later_pool_mode, drop_prob=dropout,
+                            double_time_convs=False, split_first_layer=True, batch_norm=True,
                             batch_norm_alpha=0.1, stride_before_pool=False)
+            elif model_name=='deep4_2':
+                model = Deep4Net_2(
+                            n_channels, n_classes, input_window_samples=window_len_samples,
+                            final_conv_length=final_conv_length, n_filters_time=deep4_n_filters_time, n_filters_spat=deep4_n_filters_spat,
+                            filter_time_length=deep4_filter_time_length, pool_time_length=deep4_pool_time_length, pool_time_stride=deep4_pool_time_stride,
+                            n_filters_2=deep4_n_filters_2, filter_length_2=deep4_filter_length_2, n_filters_3=deep4_n_filters_3,
+                            filter_length_3=deep4_filter_length_3, n_filters_4=deep4_n_filters_4, filter_length_4=deep4_filter_length_4,
+                            first_pool_mode=deep4_first_pool_mode, later_pool_mode=deep4_later_pool_mode, drop_prob=dropout,
+                            double_time_convs=False, split_first_layer=True, batch_norm=True,
+                            batch_norm_alpha=0.1, stride_before_pool=False,first_nonlin=nonlin,later_nonlin=nonlin)
             elif model_name=='shallow_smac':
                 model = ShallowFBCSPNet(
                     n_channels, n_classes, input_window_samples=window_len_samples,
@@ -274,8 +310,46 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 model = ViT(num_channels=n_channels,input_window_samples = window_len_samples,patch_size = vit_patch_size,num_classes = n_classes,dim = vit_dim,depth = vit_depth,heads = vit_heads,mlp_dim = vit_mlp_dim,dropout = dropout,emb_dropout = vit_emb_dropout)
             elif model_name == 'vit_space_fusion':
                 model=ViT_space_fusion(input_window_samples = window_len_samples)
-            print(get_output_shape(model,n_channels,window_len_samples))
-            print(model)
+            elif model_name =='leaf_efficientnet':
+                import pickle
+                from models.classifier import Classifier
+
+                results_dir = "./leaf/results"
+                hparams_path = os.path.join(results_dir, "hparams.pickle")
+                ckpt_path = os.path.join(results_dir, "ckpts", "epoch=100_tr_loss=0067792_tr_acc=0980434_val_acc=0954013.pth")
+                # ckpt_path="E:/program/leaf-pytorch/results/ckpts/epoch=100_tr_loss=0067792_tr_acc=0980434_val_acc=0954013.pth"
+                checkpoint = torch.load(ckpt_path)
+                with open(hparams_path, "rb") as fp:
+                    hparams = pickle.load(fp)
+                (hparams.cfg)['model']['num_classes']=2
+                print(hparams.cfg)
+                model = Classifier(hparams.cfg)
+                print(model)
+
+                save_model =checkpoint['model_state_dict']
+                model_dict = model.state_dict()
+                state_dict = {k:v for k,v in save_model.items() if (k in model_dict.keys() and k not in ['model._conv_stem.weight','model._fc.bias','model._fc.weight'])}
+                print(state_dict.keys())
+                model_dict.update(state_dict)
+                model.load_state_dict(model_dict)
+            elif model_name=='passt':
+                from hear21passt.base import get_basic_model,get_model_passt
+                # get the PaSST model wrapper, includes Melspectrogram and the default pre-trained transformer
+                model = get_basic_model(mode="logits")
+                print(model.mel) # Extracts mel spectrogram from raw waveforms.
+                model.net = get_model_passt(arch="passt_s_swa_p16_128_ap476",  n_classes=2
+                                            ,in_channels=21
+                                            )
+
+                print(model.net) # the transformer network.
+                state_dict=torch.load('./hear21passt/pre_train/passt-s-f128-p16-s10-ap.476-swa.pt')
+                poplist=['patch_embed.proj.weight',"head.1.weight","head.1.bias","head_dist.weight","head_dist.bias"]
+                for layer in poplist:
+                    state_dict.pop(layer)
+
+
+                model.net.load_state_dict(state_dict,strict=False)
+
 
 
             if cuda:
@@ -292,8 +366,9 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             monitor = lambda net: all(net.history[-1, ('train_loss_best', 'valid_loss_best')])
             cp = Checkpoint(monitor=monitor,dirname='', f_criterion=None, f_optimizer=None, load_best=False)
-            callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR', T_max=n_epochs - 1)),("cp",cp)]
+            callbacks=["accuracy", ("lr_scheduler", LRScheduler('CosineAnnealingLR' ,T_max=n_epochs - 1)),("cp",cp)] #'CosineAnnealingWarmRestarts', T_0=10 'CosineAnnealingLR' ,T_max=n_epochs - 1
             if earlystopping:
+                es_patience=n_epochs//3
                 es=EarlyStopping(threshold=0.001, threshold_mode='rel', patience=es_patience)
                 callbacks.append(('es',es))
             clf = EEGClassifier(
@@ -318,48 +393,54 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             # Model training for a specified number of epochs. `y` is None as it is already supplied
             # in the dataset.
-            clf.fit(train_set, y=None, epochs=n_epochs)
-            # clf.save_params('./params.pt')
+            global i
+            if not test_model:
+                clf.fit(train_set, y=None, epochs=n_epochs)
+                clf.save_params('./saved_models/'+model_name+time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))+'params.pt')
+
+            else:
+                clf.initialize()
+                clf.load_params('./saved_models/'+params[i])
             model_training_time = time.time() - model_training_start
 
             import matplotlib.pyplot as plt
             from matplotlib.lines import Line2D
+            if not test_model:
+                # Extract loss and accuracy values for plotting from history object
+                results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
+                # print(clf.history)
 
-            # Extract loss and accuracy values for plotting from history object
-            results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
-            # print(clf.history)
+                df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
+                                  index=clf.history[:, 'epoch'])
+                # get percent of misclass for better visual comparison to loss
+                df = df.assign(train_misclass=100 - 100 * df.train_accuracy,
+                               valid_misclass=100 - 100 * df.valid_accuracy)
+                print(df)
+                if plot_result:
+                    plt.style.use('seaborn')
+                    fig, ax1 = plt.subplots(figsize=(8, 3))
+                    df.loc[:, ['train_loss', 'valid_loss']].plot(
+                        ax=ax1, style=['-', ':'], marker='o', color='tab:blue', legend=False, fontsize=14)
 
-            df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
-                              index=clf.history[:, 'epoch'])
-            # get percent of misclass for better visual comparison to loss
-            df = df.assign(train_misclass=100 - 100 * df.train_accuracy,
-                           valid_misclass=100 - 100 * df.valid_accuracy)
-            print(df)
-            if plot_result:
-                plt.style.use('seaborn')
-                fig, ax1 = plt.subplots(figsize=(8, 3))
-                df.loc[:, ['train_loss', 'valid_loss']].plot(
-                    ax=ax1, style=['-', ':'], marker='o', color='tab:blue', legend=False, fontsize=14)
+                    ax1.tick_params(axis='y', labelcolor='tab:blue', labelsize=14)
+                    ax1.set_ylabel("Loss", color='tab:blue', fontsize=14)
 
-                ax1.tick_params(axis='y', labelcolor='tab:blue', labelsize=14)
-                ax1.set_ylabel("Loss", color='tab:blue', fontsize=14)
+                    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
-                ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+                    df.loc[:, ['train_misclass', 'valid_misclass']].plot(
+                        ax=ax2, style=['-', ':'], marker='o', color='tab:red', legend=False)
+                    ax2.tick_params(axis='y', labelcolor='tab:red', labelsize=14)
+                    ax2.set_ylabel("Misclassification Rate [%]", color='tab:red', fontsize=14)
+                    ax2.set_ylim(ax2.get_ylim()[0], 85)  # make some room for legend
+                    ax1.set_xlabel("Epoch", fontsize=14)
 
-                df.loc[:, ['train_misclass', 'valid_misclass']].plot(
-                    ax=ax2, style=['-', ':'], marker='o', color='tab:red', legend=False)
-                ax2.tick_params(axis='y', labelcolor='tab:red', labelsize=14)
-                ax2.set_ylabel("Misclassification Rate [%]", color='tab:red', fontsize=14)
-                ax2.set_ylim(ax2.get_ylim()[0], 85)  # make some room for legend
-                ax1.set_xlabel("Epoch", fontsize=14)
-
-                # where some data has already been plotted to ax
-                handles = []
-                handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle='-', label='Train'))
-                handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle=':', label='Valid'))
-                plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
-                plt.tight_layout()
-                plt.show()
+                    # where some data has already been plotted to ax
+                    handles = []
+                    handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle='-', label='Train'))
+                    handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle=':', label='Valid'))
+                    plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
+                    plt.tight_layout()
+                    plt.show()
 
             from sklearn.metrics import confusion_matrix
             from braindecode.visualization import plot_confusion_matrix
@@ -381,8 +462,9 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             # print(len(y_true))
             y_pred = clf.predict(test_set)
             y_pred_proba=clf.predict_proba(test_set)
-
-
+            # print('y_pred_proba:',y_pred_proba)
+            print('diff:',sum((np.exp(np.array(y_pred_proba[:,1]))>0.5)!=y_pred))
+            # for i,j in zip(y_pred)
 
 
             # print(y_pred)
@@ -417,22 +499,35 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             print('mcc:',mcc_per_recording)
             print('etl_time:',etl_time)
             print('model_training_time:',model_training_time)
-            his_len=len(df)
+
             with open(log_path, 'a') as f:
                 writer = csv.writer(f, delimiter=',', lineterminator='\n', )
+                if not test_model:
+                    his_len=len(df)
+                    for i2 in range(his_len-1):
+                        writer.writerow([df.loc[i2+1][0],df.loc[i2+1][1],df.loc[i2+1][2],df.loc[i2+1][3]])
 
-                for i2 in range(his_len-1):
-                    writer.writerow([df.loc[i2+1][0],df.loc[i2+1][1],df.loc[i2+1][2],df.loc[i2+1][3]])
-                global i
-                writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
-             model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
-             window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
-             load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
-             standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
-             batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
-             sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
-             model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-             channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,remove_attribute])
+
+                    writer.writerow([df.loc[his_len][0],df.loc[his_len][1],df.loc[his_len][2],df.loc[his_len][3],etl_time,\
+                 model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
+                 window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
+                 load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
+                 standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
+                 batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
+                 sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
+                 model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
+                 channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,activation,remove_attribute])
+                else:
+                    writer.writerow(['test_model','test_model','test_model','test_model',etl_time,\
+                 model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
+                 window_len_s,tuab_path,tueg_path,saved_data,saved_path,saved_windows_data,saved_windows_path,\
+                 load_saved_data,load_saved_windows,bandpass_filter,low_cut_hz,high_cut_hz,\
+                 standardization,factor_new,init_block_size,n_jobs,n_classes,lr,weight_decay,\
+                 batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
+                 sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
+                 model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
+                 channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,activation,remove_attribute])
+
 
             # print(type(confusion_mat[0][0]))
             # # add class labels
@@ -453,19 +548,37 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             if train_whole_dataset_again:
                 with open('./training_detail.csv', 'a') as f1:
+                    print('len_train_valid',len(train_set)+len(valid_set))
+                    print('len_test',len(test_set))
+
                     writer1 = csv.writer(f1, delimiter=',', lineterminator='\n', )
-                    windows_true = windows_ds.get_metadata().target
+                    writer1.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
+
+                    # windows_true = windows_ds.get_metadata().target
+                    windows_true =list(train_set.get_metadata().target)+list(valid_set.get_metadata().target)+list(test_set.get_metadata().target)
+                    # print('windows_true',windows_true,len(windows_true),type(windows_true))
                     len_true=len(windows_true)
                     for i in range(len_true//16384):
                         writer1.writerow(windows_true[i*16384:(i+1)*16384])
                     writer1.writerow(windows_true[(len_true)//16384 * 16384:])
                     # writer1.writerow(windows_true)
-                    windows_pred=np.exp(np.array(clf.predict_proba(windows_ds)[:,1]))
+                    # windows_pred=np.exp(np.array(clf.predict_proba(windows_ds)[:,1]))
+                    windows_pred=np.exp(np.concatenate((np.array(clf.predict_proba(train_set)[:,1]),np.array(clf.predict_proba(valid_set)[:,1]),np.array(clf.predict_proba(test_set)[:,1]))))
+                    # print('windows_pred',windows_pred,windows_pred.shape)
+
                     for i in range(len_true//16384):
                         writer1.writerow(windows_pred[i*16384:(i+1)*16384])
                     writer1.writerow(windows_pred[(len_true)//16384 * 16384:])
                     # writer1.writerow(windows_pred)
-                    writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+                    len_train=len(list(train_set.get_metadata().target))
+                    len_valid_train=len(list(valid_set.get_metadata().target))+len_train
+
+                    # writer1.writerow(find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+                    # print('find_all_zero',find_all_zero(train_set.get_metadata()['i_window_in_trial'].tolist()),type(find_all_zero(train_set.get_metadata()['i_window_in_trial'].tolist())))
+                    # print('find_all_zero',find_all_zero(train_set.get_metadata()['i_window_in_trial'].tolist())+[x+len_train for x in find_all_zero(valid_set.get_metadata()['i_window_in_trial'].tolist())]+[y+len_valid_train for y in find_all_zero(test_set.get_metadata()['i_window_in_trial'].tolist())])
+                    # print('find_all_zero',find_all_zero(windows_ds.get_metadata()['i_window_in_trial'].tolist()))
+                    writer1.writerow(find_all_zero(train_set.get_metadata()['i_window_in_trial'].tolist())+[x+len_train for x in find_all_zero(valid_set.get_metadata()['i_window_in_trial'].tolist())]+[y+len_valid_train for y in find_all_zero(test_set.get_metadata()['i_window_in_trial'].tolist())])
+
                     # writer1.writerow(windows_ds.get_metadata()['i_window_in_trial'].tolist())
                     paths = np.array(windows_ds.description.loc[:, ['path']]).tolist()
 

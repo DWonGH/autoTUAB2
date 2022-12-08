@@ -17,10 +17,17 @@ decision_result.csv
 tueg_labels_1.csv
 training_detail_tueg_tuab.csv
 requirements.txt
+deep4_module.py
+test*
+
+saved_models/
+leaf/results
+hear21passt/pre_train/
 
 
-
-
+*.csv
+*.xlsx
+*.txt
 
 
 
