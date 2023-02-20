@@ -28,7 +28,7 @@ hear21passt/pre_train/
 *.csv
 *.xlsx
 *.txt
-
+*.png
 
 
 #### Everything below here is a generic pycharm gitignore

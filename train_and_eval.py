@@ -42,7 +42,9 @@ pd.set_option('display.max_columns', 10)
 #
 # gl.set_value('val_a',0 )
 
-params=params_deep4_60
+
+
+
 with open(log_path,'a') as f:
     writer=csv.writer(f, delimiter=',',lineterminator='\n',)
     writer.writerow([time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time()))])
@@ -57,7 +59,9 @@ with open(log_path,'a') as f:
      'model_name','final_conv_length','window_stride_samples','relabel_dataset','relabel_label',\
      'channels','dropout','precision_per_recording','recall_per_recording',\
 
-     'acc_per_recording','mcc','mcc_per_recording','activation','remove_attribute'])
+     'acc_per_recording','mcc','mcc_per_recording','activation','remove_attribute','deep4_stride_before_pool','pretrain'])
+
+
 
 
 
@@ -82,9 +86,10 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     tmin, tmax, multiple, sec_to_cut, duration_recording_sec, max_abs_val, \
     sampling_freq, test_on_eval, split_way, train_size, valid_size, test_size, shuffle, \
     relabel_dataset, relabel_label, \
-    channels,remove_attribute)
+    channels,remove_attribute,activation)
 
     cuda = torch.cuda.is_available()  # check if GPU is available, if True chooses to use it
+    # print(cuda)
     device = 'cuda' if cuda else 'cpu'
     print('device:',device)
     if cuda:
@@ -102,10 +107,10 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
         load_ids = list(range(n_load)) if n_load else None
         windows_ds = load_concat_dataset(
             path=saved_windows_path,
-            preload=False,
+            preload=preload,
             ids_to_load=load_ids,
             target_name='pathological',
-            n_jobs=1,
+            n_jobs=n_jobs,
         )
     else:
         if load_saved_data:
@@ -115,22 +120,30 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             preload=preload,
             ids_to_load=load_ids,
             target_name='pathological',
+            n_jobs=n_jobs
         )
         else:
             tuab_ids = list(range(n_tuab)) if n_tuab else None
-            ds_tuab= TUHAbnormal(
-                tuab_path, recording_ids=tuab_ids,target_name='pathological',
-                preload=preload)
-            print(ds_tuab.description)
+            if tuab:
+                ds_tuab= TUHAbnormal(
+                    tuab_path, recording_ids=tuab_ids,target_name='pathological',
+                    preload=preload,n_jobs=n_jobs)
+                print('tuab',ds_tuab.description)
 
             if tueg:
                 tueg_ids=list(range(n_tueg)) if n_tueg else None
                 ds_tueg=TUH(tueg_path,recording_ids=tueg_ids,target_name='pathological',
-                    preload=preload)
+                    preload=preload,n_jobs=n_jobs)
                 if tuab:
                     ds_tueg = remove_tuab_from_dataset(ds_tueg, tuab_path)
 
                 print('tueg:',ds_tueg.description)
+
+                channels1=[]
+                for i in channels:
+                    channels1.append(i[:-3]+'LE')
+                # channels=channels1
+            print(channels)
 
             ds=BaseConcatDataset(([i for i in ds_tuab.datasets] if tuab else [])+([j for j in ds_tueg.datasets] if tueg else []))
             print('concate:',ds.description)
@@ -143,13 +156,41 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             ds=select_labeled(ds)
             print('select_labeled:',ds.description)
-
+            # print(channels)
+            # print(channels1)
+            if tueg:
+                ds1=select_by_channel(ds,channels1)
+                # print(ds1.datasets[0].raw.info['ch_names'])
+                print('select_channel_ds1:', ds1.description)
+                preprocessors1 = [Preprocessor('rename_channels',
+                                               mapping={'EEG A1-LE': 'EEG A1-REF', 'EEG A2-LE': 'EEG A2-REF',
+                                                        'EEG FP1-LE': 'EEG FP1-REF', 'EEG FP2-LE': 'EEG FP2-REF',
+                                                        'EEG F3-LE': 'EEG F3-REF', \
+                                                        'EEG F4-LE': 'EEG F4-REF', 'EEG C3-LE': 'EEG C3-REF',
+                                                        'EEG C4-LE': 'EEG C4-REF', 'EEG P3-LE': 'EEG P3-REF',
+                                                        'EEG P4-LE': 'EEG P4-REF', \
+                                                        'EEG O1-LE': 'EEG O1-REF', 'EEG O2-LE': 'EEG O2-REF',
+                                                        'EEG F7-LE': 'EEG F7-REF', 'EEG F8-LE': 'EEG F8-REF',
+                                                        'EEG T3-LE': 'EEG T3-REF', \
+                                                        'EEG T4-LE': 'EEG T4-REF', 'EEG T5-LE': 'EEG T5-REF',
+                                                        'EEG T6-LE': 'EEG T6-REF', 'EEG FZ-LE': 'EEG FZ-REF',
+                                                        'EEG CZ-LE': 'EEG CZ-REF', \
+                                                        'EEG PZ-LE': 'EEG PZ-REF'})]
+                preprocess(ds1, preprocessors1,n_jobs=n_jobs)
+            # print('ds',ds.description)
             ds=select_by_channel(ds,channels)
+
+            if tueg:
+                ds = BaseConcatDataset(
+                    ([i for i in ds.datasets] ) + ([j for j in ds1.datasets] ))
             print('select_channel:',ds.description)
             # check_inf(ds)
 
+
+
             preprocessors = [
                 Preprocessor('pick_types', eeg=True, meg=False, stim=False),# Keep EEG sensors
+
                 Preprocessor('pick_channels',ch_names = channels,ordered=True),
                 Preprocessor(fn='resample', sfreq=sampling_freq),
                 Preprocessor(custom_crop, tmin=sec_to_cut, tmax=duration_recording_sec+sec_to_cut, include_tmax=False,
@@ -169,15 +210,40 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 preprocessors.append(Preprocessor(exponential_moving_standardize,  # Exponential moving standardization
                              factor_new=factor_new, init_block_size=init_block_size))
 
-            if preload:
-                preprocess(ds, preprocessors)
-                if saved_data:
-                    ds.save(saved_path, overwrite=True)
-            else:
-                # preprocess(ds, preprocessors, n_jobs=n_jobs, save_dir=saved_path, overwrite=True)
-                preprocess(ds, preprocessors)
 
 
+            preprocess(ds, preprocessors, save_dir=saved_path,overwrite=False,n_jobs=n_jobs)
+            # preprocess(ds, preprocessors)
+
+
+
+            # datasets=[i for i in ds.datasets]
+            # ds1=BaseConcatDataset(datasets[:1000])
+            # ds2=BaseConcatDataset(datasets[1000:2000])
+            # ds3=BaseConcatDataset(datasets[2000:])
+            # print('ds1',ds1.description)
+            # print('ds2',ds2.description)
+            # print('ds3',ds3.description)
+            #
+            # preprocess(ds1, preprocessors,n_jobs=1)
+            # preprocess(ds2, preprocessors,n_jobs=1)
+            # preprocess(ds3, preprocessors,n_jobs=1)
+            # print('ds1_after_pre',ds1.description)
+            # print('ds2_after_pre',ds2.description)
+            # print('ds3_after_pre',ds3.description)
+            #
+            # ds=BaseConcatDataset([i for i in ds1.datasets]+[j for j in ds2.datasets]+[h for h in ds3.datasets])
+            # print('ds_after_pre',ds.description)
+            # if saved_data:
+            #     ds.save(saved_path, overwrite=True)
+            # else:
+            # if saved_data:
+            #     preprocess(ds, preprocessors,  save_dir=saved_path, overwrite=True)
+            # else:
+            #
+            #     preprocess(ds, preprocessors)
+
+        # print(ds.datasets[0].raw.info['ch_names'])
         fs = ds.datasets[0].raw.info['sfreq']
         # print("fs:",fs)
         window_len_samples = int(fs * window_len_s)
@@ -190,11 +256,12 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             ds, start_offset_samples=0, stop_offset_samples=None,
             window_size_samples=window_len_samples,
             window_stride_samples=window_stride_samples, drop_last_window=True,
-            preload=preload, drop_bad_windows=True)
+            preload=preload, drop_bad_windows=True,n_jobs=n_jobs)
 
         # Drop bad epochs
         # XXX: This could be parallelized.
         # XXX: Also, this could be implemented in the Dataset object itself.
+
         for ds in windows_ds.datasets:
             ds.windows.drop_bad()
             assert ds.windows.preload == preload
@@ -203,7 +270,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             windows_ds.save(saved_windows_path,True)
 
     # print(windows_ds.description)
-
+    print('window_stride_samples',window_stride_samples)
+    print('windows_ds', len(windows_ds))
     # Split the data:
     train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size, shuffle, random_state,remove_attribute)
     print('len_valid_train',len(train_set.description.loc[:, ['path']])+len(valid_set.description.loc[:, ['path']]))
@@ -213,6 +281,41 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
     n_channels = windows_ds[0][0].shape[0]
 
     print("n_channels:",n_channels)
+    if pretrain:
+        # n_load=20
+        load_ids = list(range(n_load)) if n_load else None
+        ds_pre=load_concat_dataset(
+            path=saved_path,
+            preload=preload,
+            ids_to_load=load_ids,
+            target_name='pathological',
+            n_jobs=n_jobs
+        )
+        ds_pre = select_by_duration(ds_pre, tmin, tmax)
+        print('select_duration:', ds_pre.description)
+        fs = ds_pre.datasets[0].raw.info['sfreq']
+        # print("fs:",fs)
+        window_len_samples = int(fs * window_len_s)
+        # window_stride_samples = int(fs * 4)
+        if not window_stride_samples:
+            window_stride_samples = window_len_samples
+
+        # window_stride_samples = int(fs * window_len_s)
+        windows_ds_pre = create_fixed_length_windows(
+            ds_pre, start_offset_samples=0, stop_offset_samples=None,
+            window_size_samples=window_len_samples,
+            window_stride_samples=window_stride_samples, drop_last_window=True,
+            preload=preload, drop_bad_windows=True,n_jobs=n_jobs)
+
+        idx_train, idx_valid = train_test_split(np.arange(len(windows_ds_pre.description['path'])),
+                                                     random_state=random_state,
+                                                     train_size=train_size,
+                                                     shuffle=shuffle)
+        splits = windows_ds_pre.split(
+            {"train": idx_train, "valid": idx_valid}
+        )
+        valid_set_pre = splits["valid"]
+        train_set_pre = splits["train"]
     # n_times = windows_ds[0][0].shape[1]
 
 
@@ -233,9 +336,9 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
             train_set, valid_set, test_set = split_data(windows_ds, split_way, train_size, valid_size, test_size,
                                                         shuffle, random_state+i)
 
-        if model_name=='vit':
-            # Avoid memory errors by forcing smaller batch size
-            batch_size = min(batch_size, 4)
+        # if model_name=='vit':
+        #     # Avoid memory errors by forcing smaller batch size
+        #     batch_size = min(batch_size, 4)
 
         mne.set_log_level(mne_log_level)
         def exp(dropout=0.2):
@@ -254,7 +357,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                             filter_length_3=deep4_filter_length_3, n_filters_4=deep4_n_filters_4, filter_length_4=deep4_filter_length_4,
                             first_pool_mode=deep4_first_pool_mode, later_pool_mode=deep4_later_pool_mode, drop_prob=dropout,
                             double_time_convs=False, split_first_layer=True, batch_norm=True,
-                            batch_norm_alpha=0.1, stride_before_pool=False,first_nonlin=nonlin,later_nonlin=nonlin)
+                            batch_norm_alpha=0.1, stride_before_pool=deep4_stride_before_pool,first_nonlin=nonlin,later_nonlin=nonlin)
             elif model_name=='deep4_1':
                 model = Deep4Net_1(
                             n_channels, n_classes, input_window_samples=window_len_samples,
@@ -386,10 +489,18 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                 callbacks=callbacks,
                 device=device,
             )
+            if pretrain:
+                torch.cuda.empty_cache()
+                clf.train_split=predefined_split(valid_set_pre)
+                print('valid_set_pre',clf.train_split)
+                clf.fit(train_set_pre, y=None, epochs=n_epochs)
+                clf.train_split=predefined_split(valid_set)
+                print('valid_set', clf.train_split)
 
 
             # Prevent GPU memory fragmentation
             torch.cuda.empty_cache()
+
 
             # Model training for a specified number of epochs. `y` is None as it is already supplied
             # in the dataset.
@@ -502,6 +613,13 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
 
             with open(log_path, 'a') as f:
                 writer = csv.writer(f, delimiter=',', lineterminator='\n', )
+                if model_name == 'vit':
+                    writer.writerow(
+                        ['vit_patch_size', 'vit_dim', 'vit_depth', 'vit_heads', 'vit_mlp_dim', 'vit_dropout',
+                         'vit_emb_dropout'])
+
+                    writer.writerow(
+                        [vit_patch_size, vit_dim, vit_depth, vit_heads, vit_mlp_dim, vit_dropout, vit_emb_dropout])
                 if not test_model:
                     his_len=len(df)
                     for i2 in range(his_len-1):
@@ -516,7 +634,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                  batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
                  sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
                  model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-                 channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,activation,remove_attribute])
+                 channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,activation,remove_attribute,deep4_stride_before_pool,pretrain])
                 else:
                     writer.writerow(['test_model','test_model','test_model','test_model',etl_time,\
                  model_training_time,acc,precision,recall,i,random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,\
@@ -526,7 +644,7 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                  batch_size,n_epochs,tmin,tmax,multiple,sec_to_cut,duration_recording_sec,max_abs_val,\
                  sampling_freq,test_on_eval,split_way,train_size,valid_size,test_size,shuffle,\
                  model_name,final_conv_length,window_stride_samples,relabel_dataset,relabel_label,\
-                 channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,activation,remove_attribute])
+                 channels,dropout, precision_per_recording,recall_per_recording,acc_per_recording,mcc,mcc_per_recording,activation,remove_attribute,deep4_stride_before_pool,pretrain])
 
 
             # print(type(confusion_mat[0][0]))
@@ -580,8 +698,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                     writer1.writerow(find_all_zero(train_set.get_metadata()['i_window_in_trial'].tolist())+[x+len_train for x in find_all_zero(valid_set.get_metadata()['i_window_in_trial'].tolist())]+[y+len_valid_train for y in find_all_zero(test_set.get_metadata()['i_window_in_trial'].tolist())])
 
                     # writer1.writerow(windows_ds.get_metadata()['i_window_in_trial'].tolist())
-                    paths = np.array(windows_ds.description.loc[:, ['path']]).tolist()
-
+                    # paths = np.array(windows_ds.description.loc[:, ['path']]).tolist()
+                    paths = np.array(train_set.description.loc[:, ['path']]).tolist()+np.array(valid_set.description.loc[:, ['path']]).tolist()+np.array(test_set.description.loc[:, ['path']]).tolist()
                     # print(paths)
                     # print(type(paths))
                     patients = []
@@ -590,8 +708,8 @@ for (random_state,tuab,tueg,n_tuab,n_tueg,n_load,preload,window_len_s,\
                         splits = paths[i][0].split('\\')
                         patients.append(splits[-3])
                         sessions.append(splits[-2])
-                    print('patients', patients)
-                    print('sessions', sessions)
+                    # print('patients', patients)
+                    # print('sessions', sessions)
                     writer1.writerow(patients)
                     writer1.writerow(sessions)
 

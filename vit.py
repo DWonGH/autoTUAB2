@@ -90,11 +90,12 @@ class ViT(nn.Module):
         # assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
 
         # num_patches = (image_height // patch_height) * (image_width // patch_width)
-        num_patches = (input_window_samples // patch_size) * num_channels
+        # num_patches = (input_window_samples // patch_size) * num_channels
+        num_patches = (input_window_samples // patch_size)
         # print(num_patches)
 
         # patch_dim = channels * patch_height * patch_width
-        patch_dim = patch_size
+
 
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
@@ -103,8 +104,10 @@ class ViT(nn.Module):
         #     nn.Linear(patch_dim, dim),
         # )
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (l p1) -> b (c l) (p1)', p1 = patch_size),
-            nn.Linear(patch_size, dim),
+            # Rearrange('b c (l p1) -> b (c l) (p1)', p1 = patch_size),
+            Rearrange('b c (l p1) -> b (l) (c p1)', p1=patch_size),
+
+            nn.Linear(num_channels*patch_size, dim),
         )
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))

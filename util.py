@@ -304,9 +304,11 @@ def relabel(dataset,label_path,dataset_folder):
     des_file=[]
     for i in des_path:
         des_file.append(os.path.basename(i))
-    print('des_file',des_file)
+    # print('des_file',des_file)
     all_labelled_TUEG_file_names = []
     TUEG_labels = []
+    usable=0
+    total=0
     with open(label_path, newline='') as csvfile:
         label_catalog_reader = csv.reader(csvfile, delimiter='\t')
 
@@ -315,9 +317,11 @@ def relabel(dataset,label_path,dataset_folder):
 
         for row in label_catalog_reader:
             # Skip blank lines
+            total+=1
             if len(row) == 0:
                 continue
             id, _ = os.path.splitext(os.path.basename(row[1]))
+            # print('id',id)
 
             p_ab = float(row[2])
             label_from_ML = row[3]
@@ -325,18 +329,22 @@ def relabel(dataset,label_path,dataset_folder):
             # if label_from_ML==label_from_rules and (p_ab>=0.99 or p_ab<=0.01):
             if (p_ab >= 0.99 or p_ab <= 0.01):
                 label = label_from_ML
+                usable+=1
                 # print('pass')
             else:
                 # print('p_ab',p_ab)
                 continue
 
             full_folder = os.path.join(dataset_folder, row[0][9:])
+            full_folder='D:'+full_folder[7:]
             # print(full_folder)
             this_file_names = read_all_file_names(full_folder, '.edf', key='time')
             # print(this_file_names)
             [all_labelled_TUEG_file_names.append(ff) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
             [TUEG_labels.append(label) for ff in this_file_names if (id in os.path.basename(ff) and os.path.basename(ff) in des_file)]
-    print('all_labelled_TUEG_file_names:',all_labelled_TUEG_file_names)
+    print('usable_rate:',usable/total)
+    # print('all_labelled_TUEG_file_names:',all_labelled_TUEG_file_names)
+    print('usable_rate1:',len(all_labelled_TUEG_file_names)/len(des_file))
     # print(len(all_labelled_TUEG_file_names))
     # print(list(des))
     if 'pathological' not in list(des):
@@ -376,10 +384,11 @@ def select_by_channel(ds, channels):
     for d_i, d in enumerate(ds.datasets):
         include=True
         for chan in channels:
-            if chan in d.raw.info['ch_names']:
+            if chan in d.raw.info['ch_names'] :
                 continue
             else:
                 include=False
+                print('lack channels',d.raw.info['ch_names'])
                 break
         if include:
             split_ids.append(d_i)
